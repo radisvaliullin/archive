@@ -3,7 +3,8 @@ The some test task.
 
 
 ## Requirements:
-Python 2.7.x.
+Python 2.7.x,
+lxml.
 
 
 ## Description:
