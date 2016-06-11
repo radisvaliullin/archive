@@ -1,9 +1,9 @@
 # test_task_0
-The some test task.
+The some test task. version 2.
 
 
 ## Requirements:
-Python 2.7.x
+Python 3.4.x
 
 
 ## To Run:
