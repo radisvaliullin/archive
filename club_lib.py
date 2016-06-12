@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 #
-import os
 import random
+import uuid
 
 
 class Club(object):
@@ -32,7 +32,7 @@ class Club(object):
             self._visitors.append(Person(name, last_name, sex, dance_skills))
 
     def add_visitors_randoom(self, count_visitors=None):
-        self._visitors.extend([Person() for i in xrange(count_visitors or 0)])
+        self._visitors.extend([Person() for i in range(count_visitors or 0)])
         self.set_visitors_condition()
 
     def set_visitors_condition(self):
@@ -87,7 +87,7 @@ class Club(object):
     def get_visitors_list_str(self):
         visitors_str = []
         for n, pers in enumerate(self._visitors):
-            v_n = unicode(n + 1)
+            v_n = str(n + 1)
             v_name_lastname = u' '.join([pers.name, pers.last_name])
             v_sex = pers.sex
             v_dance_skill = u' '.join([
@@ -111,7 +111,7 @@ class Club(object):
         return visitors_list_str
 
     def get_random_play_list(self):
-        play_list = [MusicCompos() for i in xrange(42)]
+        play_list = [MusicCompos() for i in range(42)]
         return play_list
 
     def change_track(self):
@@ -172,13 +172,15 @@ class Person(object):
 
     def get_random_person(self):
 
-        self.sex = random.choice(SEX.keys())
+        self.sex = random.choice(list(SEX.keys()))
         self.name = u''.join([
-            u'Some', SEX[self.sex], u'Name', os.urandom(4).encode('hex')])
+            u'Some', SEX[self.sex], u'Name', uuid.uuid4().hex[:4]
+        ])
         self.last_name = u''.join([
-            u'Some', SEX[self.sex], u'LastName', os.urandom(4).encode('hex')])
+            u'Some', SEX[self.sex], u'LastName', uuid.uuid4().hex[:4]
+        ])
         self.dance_skills = list(set([
-            random.choice(DANCE_LIST) for i in xrange(random.randint(1, 2))]))
+            random.choice(DANCE_LIST) for i in range(random.randint(1, 2))]))
 
     def set_person_condition(self, music):
         dance_skill = self.get_dance_skill_by_music(music)
@@ -237,7 +239,7 @@ class MusicCompos(object):
         self.music_compos_name = u''.join([
             u'MusicCompos',
             self.music_compos_style.music_style_name,
-            os.urandom(4).encode('hex'),
+            uuid.uuid4().hex[:4]
         ])
 
 

@@ -18,7 +18,7 @@ r_in = None
 
 while r_in != u'exit':
     try:
-        r_in = raw_input(u'...')
+        r_in = input(u'...')
     except KeyboardInterrupt:
         break
     except EOFError:
