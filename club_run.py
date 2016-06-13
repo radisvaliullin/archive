@@ -1,46 +1,59 @@
 # -*- coding: utf-8 -*-
 #
+# Script run club and display club and visitor status.
 #
+import argparse
+
 import club_lib as ccl
 
 
-print(
-    u'''
+CLUB_WELCOME_MSG = (
+    '''
     Welcome to the Cotton Club Info Terminal.
-    Enter commands or help.
+    Enter commands or -h.
     ''')
+CLUB_CLOSE_MSG = 'Bye!'
 
-cotton_club = ccl.Club(u'Cotton Club')
 
+print (CLUB_WELCOME_MSG)
+
+# Create club object (Open Club)
+cotton_club = ccl.Club('Cotton Club')
+# show club and visitor status
 print(cotton_club.show_status())
 
-r_in = None
+input_command = ''
 
-while r_in != u'exit':
+while True:
     try:
-        r_in = input(u'...')
+        input_command = input('enter command: ')
     except KeyboardInterrupt:
         break
     except EOFError:
         break
 
-    if r_in in (u'help', u'--help', u'-h'):
-        print(u'''
+    if input_command in ('help', '--help', '-h'):
+        print('''
         Commands List:
-            -s or --status or --club_visitors_status    Its show information about visitors and play music.
-            -c or --change or --change_track            Its change played music to next track.
-            -r or --rnd_v or --random_visitors          Its random change visitors.
+            -s or --status     Show information about visitors and play music.
+            -c or --change     Change played music to next track.
+            -r or --random      Random change visitors.
+            -a or --add        Add New Visitor.
+            -h or --help       Help.
         ''')
 
-    elif r_in in (u'-s', u'--status', u'--club_visitors_status'):
+    elif input_command in ('-s', '--status'):
         print (cotton_club.show_status())
 
-    elif r_in in (u'-c', u'--change', u'--change_track'):
+    elif input_command in ('-c', '--change'):
         cotton_club.change_track()
         print (cotton_club.show_status())
 
-    elif r_in in (u'-r', u'--rnd_v', u'--random_visitors'):
+    elif input_command in ('-r', '--random'):
         cotton_club.change_visitiors(10)
         print (cotton_club.show_status())
 
-print(u'Bye.')
+    elif input_command == 'exit':
+        break
+
+print(CLUB_CLOSE_MSG)

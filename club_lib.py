@@ -3,196 +3,176 @@
 #
 import random
 import uuid
+from abc import ABCMeta, abstractmethod
+
+import itertools
 
 
-class Club(object):
+class Observer(metaclass=ABCMeta):
 
-    _visitors = []
+    @abstractmethod
+    def handler_observerable_notice(self):
+        pass
 
-    play_music = None
-    play_list = []
+
+class Observable(metaclass=ABCMeta):
+
+    def __init__(self):
+
+        self._observers = []
+
+    def register_observer(self, observer: Observer):
+        self._observers.append(observer)
+
+    def unregister_observer(self, observer: Observer):
+        self._observers.remove(observer)
+
+    def notify_observer(self, *args, **kwargs):
+        for observer in self._observers:
+            observer.handler_observerable_notice(*args, **kwargs)
+
+
+class Club(Observable):
 
     def __init__(self, name):
+        super(Club, self).__init__()
 
         self.name = name
-        self.play_list = self.get_random_play_list()
-        self.play_music = self.play_list[0]
-        self.play_music_pos = 0
-        self.next_track = self.get_next_track()
+        self.music_box = MusicBox().random()
 
-        self.add_visitors_randoom(10)
+    def add_visitor(self, visitor=None, name=None, last_name=None, sex=None, dance_skill=None):
 
-    def add_visitor(
-            self, visitor=None, name=None, last_name=None, sex=None,
-            dance_skills=None):
+        if visitor is None:
+            visitor = Visitor(name=name, last_name=last_name, sex=sex, dance_skill=dance_skill)
 
-        if visitor:
-            self._visitors.append(visitor)
-        else:
-            self._visitors.append(Person(name, last_name, sex, dance_skills))
+        self.register_observer(visitor)
+
+    def remove_visitor(self, visitor):
+
+        self.unregister_observer(visitor)
+
+    def music_track_change(self):
+
+        self.notify_observer(played_music=self.music_box.play_music)
 
     def add_visitors_randoom(self, count_visitors=None):
-        self._visitors.extend([Person() for i in range(count_visitors or 0)])
-        self.set_visitors_condition()
 
-    def set_visitors_condition(self):
-        for person in self._visitors:
-            person.set_person_condition(self.play_music)
+        for i in range(count_visitors or 0):
+            self.register_observer(Visitor(random=True))
+
+    def get_visitors_count_str(self):
+
+        return str(len(self._observers))
 
     def show_status(self):
 
         visitors_str = self.get_visitors_list_str()
 
-        status_str = u'''
+        status_str = '''
         {club_name}
         played music: {composition_name}
         played music style: {composition_style}
         next_track: {next_track}
 
+        visitors count: {visitors_count}
         visitors:
         {visitors_header}
         {visitors}
 
         '''.format(
             club_name=self.name,
-            composition_name=self.play_music.music_compos_name,
-            composition_style=(
-                self.play_music.music_compos_style.music_style_name),
-            next_track=self.next_track.music_compos_name,
-            visitors_header=u''.join([
-                u'n'.ljust(3, u'.'), u' ',
-                u'Name LastName'.ljust(20, u'.'), u' ',
-                u'Sex'.ljust(4, u'.'), u' ',
-                u'Dance_Skills'.ljust(16, u'.'), u' ',
-                u'Head'.ljust(16, u'.'), u' ',
-                u'Body'.ljust(16, u'.'), u' ',
-                u'Hands'.ljust(16, u'.'), u' ',
-                u'Legs'.ljust(16, u'.'), u' ',
+            composition_name=self.music_box.play_music.music_compos_name,
+            composition_style=self.music_box.play_music.music_compos_style,
+            next_track=self.music_box.next_track.music_compos_name,
+            visitors_count=self.get_visitors_count_str(),
+            visitors_header=''.join([
+                'n'.ljust(3, '.'), ' ',
+                'Name LastName'.ljust(20, '.'), ' ',
+                'Sex'.ljust(4, '.'), ' ',
+                'Dance_Skills'.ljust(16, '.'), ' ',
+                'Head'.ljust(16, '.'), ' ',
+                'Trunk'.ljust(16, '.'), ' ',
+                'Hands'.ljust(16, '.'), ' ',
+                'Legs'.ljust(16, '.'), ' ',
             ]),
             visitors=visitors_str,
         )
         return status_str
 
-    def get_next_track(self):
-        if not self.play_list:
-            next_track = None
-        if len(self.play_list) == 1:
-            next_track = self.play_list[0]
-        elif self.play_music_pos < (len(self.play_list) - 1):
-            next_track = self.play_list[self.play_music_pos + 1]
-        else:
-            next_track = self.play_list[0]
-        return next_track
-
     def get_visitors_list_str(self):
         visitors_str = []
-        for n, pers in enumerate(self._visitors):
+        for n, pers in enumerate(self._observers):
             v_n = str(n + 1)
-            v_name_lastname = u' '.join([pers.name, pers.last_name])
+            v_name_lastname = ' '.join([pers.name, pers.last_name])
             v_sex = pers.sex
-            v_dance_skill = u' '.join([
-                ds.dance_name for ds in pers.dance_skills])
-            v_head = pers.body_condition['head'].cond_name
-            v_body = pers.body_condition['body'].cond_name
-            v_hands = pers.body_condition['hands'].cond_name
-            v_legs = pers.body_condition['legs'].cond_name
-            visitor_str = u''.join([
-                v_n[:3].ljust(3, u'.'), u' ',
-                v_name_lastname[:20].ljust(20, u'.'), u' ',
-                v_sex[:4].ljust(4, u'.'), u' ',
-                v_dance_skill[:16].ljust(16, u'.'), u' ',
-                v_head[:16].ljust(16, u'.'), u' ',
-                v_body[:16].ljust(16, u'.'), u' ',
-                v_hands[:16].ljust(16, u'.'), u' ',
-                v_legs[:16].ljust(16, u'.'),
+            v_dance_skill = ' '.join([ds.dance_name for ds in pers.dance_skills])
+            v_head = pers.head
+            v_trunk = pers.trunk
+            v_hands = pers.hands
+            v_legs = pers.legs
+            visitor_str = ''.join([
+                v_n[:3].ljust(3, '.'), ' ',
+                v_name_lastname[:20].ljust(20, '.'), ' ',
+                v_sex[:4].ljust(4, '.'), ' ',
+                v_dance_skill[:16].ljust(16, '.'), ' ',
+                (v_head or 'None')[:16].ljust(16, '.'), ' ',
+                (v_trunk or 'None')[:16].ljust(16, '.'), ' ',
+                (v_hands or 'None')[:16].ljust(16, '.'), ' ',
+                (v_legs or 'None')[:16].ljust(16, '.'),
             ])
             visitors_str.append(visitor_str)
-        visitors_list_str = u'\n        '.join(visitors_str)
+        visitors_list_str = '\n        '.join(visitors_str)
         return visitors_list_str
 
-    def get_random_play_list(self):
-        play_list = [MusicCompos() for i in range(42)]
-        return play_list
-
     def change_track(self):
-        if not self.play_list:
-            self.play_music = None
-            self.next_track = None
-            self.play_music_pos = None
-        if len(self.play_list) == 1:
-            self.play_music = self.play_list[0]
-            self.next_track = self.play_list[0]
-            self.play_music_pos = 0
-        elif self.play_music_pos < (len(self.play_list) - 1):
-            self.play_music = self.play_list[self.play_music_pos + 1]
-            self.play_music_pos += 1
-            self.next_track = self.get_next_track()
-        else:
-            self.play_music_pos = 0
-            self.play_music = self.play_list[0]
-            self.next_track = self.get_next_track()
-
-        self.set_visitors_condition()
+        self.music_box.change_track()
+        self.music_track_change()
 
     def change_visitiors(self, count_visitors=None):
         self._visitors = []
         self.add_visitors_randoom(count_visitors)
 
 
-SEX = {u'F': u'Female', u'M': u'Male'}
+class Visitor(Observer):
 
+    name = ''
+    last_name = ''
+    sex = ''
 
-class Person(object):
-
-    name = u''
-    last_name = u''
-    sex = u''
-
-    body_condition = {
-        u'head': None,
-        u'body': None,
-        u'hands': None,
-        u'legs': None,
-    }
+    head = None
+    trunk = None
+    hands = None
+    legs = None
 
     dance_skills = []
 
-    def __init__(self, name=None, last_name=None, sex=None, dance_skills=None):
-        if (
-            name and last_name and sex in SEX and
-            isinstance(name, basestring) and isinstance(last_name, basestring)
-        ):
+    def __init__(self, name=None, last_name=None, sex=None, dance_skill=None, random=False):
+        if not random:
             self.name = name
             self.last_name = last_name
             self.sex = sex
-            if dance_skills:
-                self.dance_skills = dance_skills
+            if dance_skill:
+                self.dance_skills = dance_skill if isinstance(dance_skill, list) else [dance_skill]
         else:
             self.get_random_person()
 
-    def get_random_person(self):
+    def handler_observerable_notice(self, played_music=None):
 
-        self.sex = random.choice(list(SEX.keys()))
-        self.name = u''.join([
-            u'Some', SEX[self.sex], u'Name', uuid.uuid4().hex[:4]
-        ])
-        self.last_name = u''.join([
-            u'Some', SEX[self.sex], u'LastName', uuid.uuid4().hex[:4]
-        ])
-        self.dance_skills = list(set([
-            random.choice(DANCE_LIST) for i in range(random.randint(1, 2))]))
+        if played_music:
+            self.set_visitor_condition(played_music)
 
-    def set_person_condition(self, music):
-        dance_skill = self.get_dance_skill_by_music(music)
-        if dance_skill:
-            self.body_condition = dance_skill.body_condition
+    def set_visitor_condition(self, music):
+        dance_skill_by_music = self.get_dance_skill_by_music(music)
+        if dance_skill_by_music:
+            self.head = dance_skill_by_music.head
+            self.trunk = dance_skill_by_music.trunk
+            self.hands = dance_skill_by_music.hands
+            self.legs = dance_skill_by_music.legs
         else:
-            self.body_condition = {
-                'head': HeadDrunk,
-                'body': BodyDrunk,
-                'hands': HandsDrunk,
-                'legs': LegsDrunk,
-            }
+            self.head = HEAD_DRUNK
+            self.trunk = TRUNK_DRUNK
+            self.hands = HANDS_DRUNK
+            self.legs = LEGS_DRUNK
 
     def get_dance_skill_by_music(self, music):
         dance_skills = [
@@ -201,228 +181,174 @@ class Person(object):
         ]
         return dance_skills[0] if dance_skills else None
 
+    def get_random_person(self):
+        """
+        Create random Visitor.
+        """
+        self.sex = random.choice(list(SEX.keys()))
+        self.name = ''.join([
+            'Some', SEX[self.sex], 'Name', uuid.uuid4().hex[:4]
+        ])
+        self.last_name = ''.join([
+            'Some', SEX[self.sex], 'LastName', uuid.uuid4().hex[:4]
+        ])
+        self.dance_skills = list(set([
+            random.choice(DANCE_LIST) for i in range(random.randint(1, 2))]))
+
+
+class MusicBox():
+
+    def __init__(self):
+
+        self.play_list = []
+        self.play_pos = 0
+        self.play_music = None
+        self.next_track = None
+
+    def random(self):
+
+        self.play_list = self.get_random_play_list()
+        self.play_pos = 0
+        self.play_music = self.play_list[self.play_pos]
+        self.next_track = self.get_next_track()
+        return self
+
+    def get_random_play_list(self):
+
+        play_list = [MusicCompos().random() for i in range(42)]
+        return play_list
+
+    def get_next_track(self):
+
+        next_track = self.play_list[self.play_pos + 1] if self.play_pos < len(self.play_list) - 1 else 0
+        return next_track
+
+    def change_track(self):
+        if self.play_list:
+            self.play_pos = self.play_pos + 1 if self.play_pos < len(self.play_list) - 1 else 0
+            self.play_music = self.play_list[self.play_pos]
+            next_track = self.get_next_track()
+
+
+#=======================================
+# SEX
+FEMALE = 'F'
+MALE = 'M'
+SEX = {FEMALE: 'Female', MALE: 'Male'}
+
 
 # ======================================
 # Music Style
-class MusicStyle(object):
+RNB_MUSIC_STYLE = 'RnB'
+ELHOUSE_MUSIC_STYLE = 'Electrohouse'
+POP_MUSIC_STYLE = 'Pop'
 
-    music_style_name = u''
-
-
-class RnBMusic(MusicStyle):
-
-    music_style_name = u'RnB'
-
-
-class ElHouseMusic(MusicStyle):
-
-    music_style_name = u'Electrohouse'
-
-
-class PopMusic(MusicStyle):
-
-    music_style_name = u'Pop'
-
-
-MusicStyleList = [RnBMusic, ElHouseMusic, PopMusic]
+MUSIC_STYLE_LIST = [RNB_MUSIC_STYLE, ELHOUSE_MUSIC_STYLE, POP_MUSIC_STYLE]
 
 
 # ======================================
 # Music Composition
-class MusicCompos(object):
-
-    music_compos_name = u''
-    music_compos_style = None
+class MusicCompos():
 
     def __init__(self):
-        self.music_compos_style = random.choice(MusicStyleList)
-        self.music_compos_name = u''.join([
-            u'MusicCompos',
-            self.music_compos_style.music_style_name,
+        self.music_compos_name = ''
+        self.music_compos_style = None
+
+    def random(self):
+        self.music_compos_style = random.choice(MUSIC_STYLE_LIST)
+        self.music_compos_name = ''.join([
+            'MusicCompos',
+            self.music_compos_style,
             uuid.uuid4().hex[:4]
         ])
+        return self
 
 
 # ======================================
 # Body Part Condition
-class BodyCondition(object):
+# HEAD
+HEAD_BACK_AND_FORTH = 'Head Back And Forth'
+HEAD_LOW = 'Head Low'
+HEAD_FLOWING_MOTION = 'Head Flowing Motion'
+HEAD_DRUNK = 'Head Drunk'
 
-    cond_name = u''
+# TRUNK
+TRUNK_BACK_AND_FORTH = 'Trunk Back And Forth'
+TRUNK_FLOWING_MOTION = 'Trunk Flowing Motion'
+TRUNK_DRUNK = 'Trunk Drunk'
 
+# HANDS
+HANDS_BEND_ELBOW = 'Hands Bent At The Elbow'
+HANDS_CIRCLE_ROTATING = 'Hands Circle Rotating'
+HANDS_FLOWING_MOTION = 'Hands Flowing Motion'
+HANDS_DRUNK = 'Hands Drunk'
 
-# Head
-class HeadCond(BodyCondition):
-    pass
-
-
-class HeadBackAndForth(HeadCond):
-
-    cond_name = u'Head Back And Forth'
-
-
-class HeadLow(HeadCond):
-
-    cond_name = u'Head Low'
-
-
-class HeadFlowingMotion(HeadCond):
-
-    cond_name = u'Head Flowing Motion'
-
-
-class HeadDrunk(HeadCond):
-
-    cond_name = u'Head Drunk'
-
-
-# Body
-class BodyCond(BodyCondition):
-    pass
-
-
-class BodyBackAndForth(BodyCond):
-
-    cond_name = u'Body Back And Forth'
-
-
-class BodyFlowingMotion(HeadCond):
-
-    cond_name = u'Body Flowing Motion'
-
-
-class BodyDrunk(BodyCond):
-
-    cond_name = u'Body Drunk'
-
-
-# Hands
-class HandsCond(BodyCondition):
-    pass
-
-
-class HandsBendElbow(HandsCond):
-
-    cond_name = u'Hands Bent At The Elbow'
-
-
-class HandsCircleRotating(HandsCond):
-
-    cond_name = u'Hands Circle Rotating'
-
-
-class HandsFlowingMotion(HeadCond):
-
-    cond_name = u'Hands Flowing Motion'
-
-
-class HandsDrunk(HandsCond):
-
-    cond_name = u'Hands Drunk'
-
-
-# Legs
-class LegsCond(BodyCondition):
-    pass
-
-
-class LegsCrouch(LegsCond):
-
-    cond_name = u'Legs Crouch'
-
-
-class LegsMoveRhythm(LegsCond):
-
-    cond_name = u'Legs Move Rhythm'
-
-
-class LegsFlowingMotion(HeadCond):
-
-    cond_name = u'Legs Flowing Motion'
-
-
-class LegsDrunk(LegsCond):
-
-    cond_name = u'Legs Drunk'
+# LEGS
+LEGS_CROUCH = 'Legs Crouch'
+LEGS_MOVE_RHYTHM = 'Legs Move Rhythm'
+LEGS_FLOWING_MOTION = 'Legs Flowing Motion'
+LEGS_DRUNK = 'Legs Drunk'
 
 
 # ======================================
 # Dance
-class Dance(object):
+class Dance():
 
-    dance_name = u''
+    def __init__(self, name, head, trunk, hands, legs, right_music):
 
-    body_condition = {
-        'head': None,
-        'body': None,
-        'hands': None,
-        'legs': None,
-    }
+        self.dance_name = name
 
-    dance_right_musics = []
+        self.head = head
+        self.trunk = trunk
+        self.hands = hands
+        self.legs = legs
 
-    def __init__(self):
-
-        pass
+        self.dance_right_musics = [right_music] if isinstance(right_music, list) else [right_music]
 
 
-class HipHopDance(Dance):
+HIP_HOP_DANCE = Dance(
+    'HipHop',
+    HEAD_BACK_AND_FORTH,
+    TRUNK_BACK_AND_FORTH,
+    HANDS_BEND_ELBOW,
+    LEGS_CROUCH,
+    RNB_MUSIC_STYLE,
+)
 
-    dance_name = u'HipHop'
-    body_condition = {
-        'head': HeadBackAndForth,
-        'body': BodyBackAndForth,
-        'hands': HandsBendElbow,
-        'legs': LegsCrouch,
-    }
-    dance_right_musics = [RnBMusic]
+RNB_DANCE = Dance(
+    'RnB',
+    HEAD_BACK_AND_FORTH,
+    TRUNK_BACK_AND_FORTH,
+    HANDS_BEND_ELBOW,
+    LEGS_CROUCH,
+    RNB_MUSIC_STYLE,
+)
 
+ELECTRO_DANCE = Dance(
+    'ElectroDance',
+    HEAD_LOW,
+    TRUNK_BACK_AND_FORTH,
+    HANDS_CIRCLE_ROTATING,
+    LEGS_MOVE_RHYTHM,
+    ELHOUSE_MUSIC_STYLE,
+)
 
-class RnBDance(Dance):
+HOUSE_DANCE = Dance(
+    'HouseDance',
+    HEAD_LOW,
+    TRUNK_BACK_AND_FORTH,
+    HANDS_CIRCLE_ROTATING,
+    LEGS_MOVE_RHYTHM,
+    ELHOUSE_MUSIC_STYLE,
+)
 
-    dance_name = u'RnB'
-    body_condition = {
-        'head': HeadBackAndForth,
-        'body': BodyBackAndForth,
-        'hands': HandsBendElbow,
-        'legs': LegsCrouch,
-    }
-    dance_right_musics = [RnBMusic]
+POP_DANCE = Dance(
+    'PopDance',
+    HEAD_FLOWING_MOTION,
+    TRUNK_BACK_AND_FORTH,
+    HANDS_FLOWING_MOTION,
+    LEGS_FLOWING_MOTION,
+    POP_MUSIC_STYLE,
+)
 
-
-class ElectroDance(Dance):
-
-    dance_name = u'ElectroDance'
-    body_condition = {
-        'head': HeadLow,
-        'body': BodyBackAndForth,
-        'hands': HandsCircleRotating,
-        'legs': LegsMoveRhythm,
-    }
-    dance_right_musics = [ElHouseMusic]
-
-
-class HouseDance(Dance):
-
-    dance_name = u'HouseDance'
-    body_condition = {
-        'head': HeadLow,
-        'body': BodyBackAndForth,
-        'hands': HandsCircleRotating,
-        'legs': LegsMoveRhythm,
-    }
-    dance_right_musics = [ElHouseMusic]
-
-
-class PopDance(Dance):
-
-    dance_name = u'PopDance'
-    body_condition = {
-        'head': HeadFlowingMotion,
-        'body': BodyFlowingMotion,
-        'hands': HandsFlowingMotion,
-        'legs': LegsFlowingMotion,
-    }
-    dance_right_musics = [ElHouseMusic]
-
-
-DANCE_LIST = [HipHopDance, RnBDance, ElectroDance, HouseDance, PopDance]
+DANCE_LIST = [HIP_HOP_DANCE, RNB_DANCE, ELECTRO_DANCE, HOUSE_DANCE, POP_DANCE]
