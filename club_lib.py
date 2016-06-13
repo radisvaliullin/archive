@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 #
+# Club lib.
 #
 import random
 import uuid
 from abc import ABCMeta, abstractmethod
-
-import itertools
 
 
 class Observer(metaclass=ABCMeta):
@@ -40,10 +39,7 @@ class Club(Observable):
         self.name = name
         self.music_box = MusicBox().random()
 
-    def add_visitor(self, visitor=None, name=None, last_name=None, sex=None, dance_skill=None):
-
-        if visitor is None:
-            visitor = Visitor(name=name, last_name=last_name, sex=sex, dance_skill=dance_skill)
+    def add_visitor(self, visitor):
 
         self.register_observer(visitor)
 
@@ -51,7 +47,7 @@ class Club(Observable):
 
         self.unregister_observer(visitor)
 
-    def music_track_change(self):
+    def played_music_notify(self):
 
         self.notify_observer(played_music=self.music_box.play_music)
 
@@ -59,6 +55,18 @@ class Club(Observable):
 
         for i in range(count_visitors or 0):
             self.register_observer(Visitor(random=True))
+
+    def change_track(self):
+        self.music_box.change_track()
+        self.played_music_notify()
+
+    def change_visitiors(self, count_visitors=None):
+        self.all_visitor_remove()
+        self.add_visitors_randoom(count_visitors)
+        self.played_music_notify()
+
+    def all_visitor_remove(self):
+        self._observers = [observer for observer in self._observers if not isinstance(observer, Visitor)]
 
     def get_visitors_count_str(self):
 
@@ -123,14 +131,6 @@ class Club(Observable):
             visitors_str.append(visitor_str)
         visitors_list_str = '\n        '.join(visitors_str)
         return visitors_list_str
-
-    def change_track(self):
-        self.music_box.change_track()
-        self.music_track_change()
-
-    def change_visitiors(self, count_visitors=None):
-        self._visitors = []
-        self.add_visitors_randoom(count_visitors)
 
 
 class Visitor(Observer):

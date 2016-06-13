@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 #
 # Script run club and display club and visitor status.
+# python3 club_run.py
+# Created club instance, add visitors, send notify, update_visitor status.
+# control command: -s - show status; -m - change music track, -r - random change visitors.
 #
-import argparse
-
+#
 import club_lib as ccl
 
 
@@ -19,9 +21,14 @@ print (CLUB_WELCOME_MSG)
 
 # Create club object (Open Club)
 cotton_club = ccl.Club('Cotton Club')
+# Add random visitors
+cotton_club.add_visitors_randoom(10)
+# Notify about played music
+cotton_club.played_music_notify()
 # show club and visitor status
 print(cotton_club.show_status())
 
+# input command to update information or status.
 input_command = ''
 
 while True:
@@ -32,28 +39,27 @@ while True:
     except EOFError:
         break
 
-    if input_command in ('help', '--help', '-h'):
+    if input_command == '-h':
         print('''
         Commands List:
-            -s or --status     Show information about visitors and play music.
-            -c or --change     Change played music to next track.
-            -r or --random      Random change visitors.
-            -a or --add        Add New Visitor.
-            -h or --help       Help.
+            -s        Show information about visitors and play music.
+            -m        Change played music to next track.
+            -r        Random change visitors.
+            -e        Exit terminal.
         ''')
 
-    elif input_command in ('-s', '--status'):
+    elif input_command == '-s':
         print (cotton_club.show_status())
 
-    elif input_command in ('-c', '--change'):
+    elif input_command == '-m':
         cotton_club.change_track()
         print (cotton_club.show_status())
 
-    elif input_command in ('-r', '--random'):
+    elif input_command == '-r':
         cotton_club.change_visitiors(10)
         print (cotton_club.show_status())
 
-    elif input_command == 'exit':
+    elif input_command == '-e':
         break
 
 print(CLUB_CLOSE_MSG)
