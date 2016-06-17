@@ -1,6 +1,9 @@
 # test_task_2
 The some test task.
 
+# to run
+python3 original_sort.py array
+
 # REQUIREMENTS
 Python 3.4.x
 
