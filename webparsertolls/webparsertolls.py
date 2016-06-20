@@ -50,6 +50,8 @@ class WebParser(object):
 
         tree = self.get_webpage_html_tree()
         root_element = tree.getroot()
+        self.out_texts = []
+        self.out_text_max_density = 0
         self.tags_stack = []
         self.webpage_article_text_grab(root_element)
 

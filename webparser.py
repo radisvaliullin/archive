@@ -26,8 +26,8 @@ if __name__ == '__main__':
 
     web_parser = WebParser()
     web_parser.setup(
-        density_coeff=float(config_parser['DEFAULT']['DENSITY']),
-        out_dir=config_parser['DEFAULT']['OUT_PATH']
+        density_coeff=args.p and float(args.p) or float(config_parser['DEFAULT']['DENSITY']),
+        out_dir=args.o or config_parser['DEFAULT']['OUT_PATH']
     )
 
     for url in urls:
