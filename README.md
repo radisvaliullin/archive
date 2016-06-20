@@ -2,6 +2,10 @@
 The some test task.
 
 
+# to run
+python3 webparser.py some_url
+
+
 ## Requirements:
 Python 3.4.x.
 lxml 3.6.0.

@@ -1,36 +1,35 @@
 # -*- coding: utf-8 -*-
 import argparse
+import configparser
+import json
 
 from webparsertolls.webparsertolls import WebParser
 
-input_args_parser = argparse.ArgumentParser(description='Simple web parser.')
-input_args_parser.add_argument('url')
-args = input_args_parser.parse_args()
 
-web_parser = WebParser(args.url)
-web_parser.webpage_parse()
-web_parser.create_out_file()
+args_parser = argparse.ArgumentParser(description='Simple web arcticle parser.')
+args_parser.add_argument('url', nargs='?', default='', help='url to article web page.')
+args_parser.add_argument('-p', help='Density coefficient.')
+args_parser.add_argument('-o', help='Output file folder.')
+args = args_parser.parse_args()
 
 
-sites = [
-    'https://lenta.ru/news/2016/06/20/baribal_attacks/',
-    'https://lenta.ru/news/2016/06/20/batman/',
-    'http://www.gazeta.ru/politics/news/2016/06/20/n_8783951.shtml',
+config_parser = configparser.ConfigParser()
+config_parser.read('default.config.ini')
 
-    'http://www.f1news.ru/news/f1-113012.html',
-    'http://www.f1news.ru/Championship/2016/europe/race.shtml',
 
-    # 'https://meduza.io/feature/2016/06/20/izgnanie-islamskogo-gosudarstva',
-    # 'https://meduza.io/news/2016/06/20/oon-soobschila-o-rekordnom-chisle-bezhentsev-v-2015-godu',
+if __name__ == '__main__':
 
-    'https://news.yandex.ru/yandsearch?cl4url=www.kommersant.ru%2Fdoc%2F3018006&lr=43&lang=ru&rubric=index',
+    if args.url:
+        urls = [args.url]
+    else:
+        urls = config_parser['URLS']['TEST_URLS'].split()
 
-    'http://matchtv.ru/news/uefa-ne-soglasoval-zapros-rossii-na-traurnye-povyazki-vo-vremya-matcha-protiv-uelsa/',
+    web_parser = WebParser()
+    web_parser.setup(
+        density_coeff=float(config_parser['DEFAULT']['DENSITY']),
+        out_dir=config_parser['DEFAULT']['OUT_PATH']
+    )
 
-]
-
-for page in sites:
-
-    web_parser = WebParser(page)
-    web_parser.webpage_parse()
-    web_parser.create_out_file()
+    for url in urls:
+        web_parser.set_webpage_url(url)
+        web_parser.webpage_parse()
