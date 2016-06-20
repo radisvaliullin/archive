@@ -3,8 +3,6 @@ import codecs
 import os
 import textwrap
 import urllib
-import urllib2
-from urlparse import urlparse
 
 from lxml import etree, html
 
@@ -12,20 +10,20 @@ from lxml import etree, html
 class WebParser(object):
 
     def __init__(self, url):
-        if url.startswith(u'http://') or url.startswith(u'https://'):
+        if url.startswith('http://') or url.startswith('https://'):
             self.webpage_url = url
         else:
-            self.webpage_url = u''.join([u'http://', url])
+            self.webpage_url = ''.join(['http://', url])
 
-        self.out_text = u''
+        self.out_text = ''
 
         self.special_tag = []
         self.enable_tag = []
-        self.exclude_tag = [u'script']
+        self.exclude_tag = ['script']
         self.tags_stack = []
 
     def webpage_parse(self):
-        url_parse_res = urlparse(self.webpage_url)
+        url_parse_res = urllib.parse.urlparse(self.webpage_url)
         if url_parse_res.path:
             self.webpage_article_parse()
         else:
@@ -44,30 +42,30 @@ class WebParser(object):
         self.webpage_article_text_grab(root_element)
 
     def get_webpage_html_source(self):
-        response = urllib2.urlopen(self.webpage_url)
+        response = urllib.request.urlopen(self.webpage_url)
         charset = response.headers.getparam('charset')
-        webpage_html_source = unicode(response.read(), encoding=charset)
+        webpage_html_source = str(response.read(), encoding=charset)
         return webpage_html_source
 
     def get_webpage_html_tree(self):
-        response = urllib2.urlopen(self.webpage_url)
-        charset = response.headers.getparam('charset')
+        response = urllib.request.urlopen(self.webpage_url)
+        charset = response.headers.get_param('charset')
         setup_parser = html.HTMLParser(encoding=charset)
         tree = html.parse(response, parser=setup_parser)
         return tree
 
     def recursive_text_graber(self, element):
 
-        self.tags_stack.append(unicode(element.tag))
+        self.tags_stack.append(str(element.tag))
 
         if self.is_tag_ok(element.tag):
 
             if self.is_el_text_ok(element):
 
-                el_text = unicode(getattr(element, u'text', u'') or u'')
-                self.out_text += u'\n'
-                self.out_text += u''.join([
-                    self.format_text_by_80_chars_in_line(el_text), u'\n',
+                el_text = str(getattr(element, 'text', '') or '')
+                self.out_text += '\n'
+                self.out_text += ''.join([
+                    self.format_text_by_80_chars_in_line(el_text), '\n',
                 ])
 
         for sub_el in element:
@@ -77,16 +75,16 @@ class WebParser(object):
 
     def webpage_article_text_grab(self, element):
 
-        self.tags_stack.append(unicode(element.tag))
+        self.tags_stack.append(str(element.tag))
 
         if self.is_art_pg_tag_ok(element.tag):
 
             if self.is_el_text_ok(element):
 
-                el_text = unicode(getattr(element, u'text', u'') or u'')
-                self.out_text += u'\n'
-                self.out_text += u''.join([
-                    self.format_text_by_80_chars_in_line(el_text), u'\n',
+                el_text = str(getattr(element, 'text', '') or '')
+                self.out_text += '\n'
+                self.out_text += ''.join([
+                    self.format_text_by_80_chars_in_line(el_text), '\n',
                 ])
 
         for sub_el in element:
@@ -96,13 +94,13 @@ class WebParser(object):
 
     def is_tag_ok(self, el_tag):
         res = (
-            isinstance(el_tag, basestring) and
+            isinstance(el_tag, str) and
             el_tag not in self.exclude_tag and
             (
-                self.tags_stack[:2] != [u'html', u'head'] or
+                self.tags_stack[:2] != ['html', 'head'] or
                 (
-                    self.tags_stack[:2] == [u'html', u'head'] and
-                    el_tag == u'title'
+                    self.tags_stack[:2] == ['html', 'head'] and
+                    el_tag == 'title'
                 )
             )
         )
@@ -110,14 +108,14 @@ class WebParser(object):
 
     def is_art_pg_tag_ok(self, el_tag):
         res = (
-            isinstance(el_tag, basestring) and
+            isinstance(el_tag, str) and
             el_tag not in self.exclude_tag and
-            self.tags_stack[:2] == [u'html', u'body']
+            self.tags_stack[:2] == ['html', 'body']
         )
         return res
 
     def is_el_text_ok(self, element):
-        el_text = unicode(getattr(element, u'text', u'') or u'')
+        el_text = str(getattr(element, 'text', '') or '')
         res = (
             len(el_text.strip().split()) >= 4 or
             self.is_sub_elements_text_len_ok(element)
@@ -125,14 +123,14 @@ class WebParser(object):
         return res
 
     def is_sub_elements_text_len_ok(self, element):
-        el_text = unicode(getattr(element, u'text', u'') or u'')
-        sub_texts = u''
+        el_text = str(getattr(element, 'text', '') or '')
+        sub_texts = ''
         sub_texts_count = 0
         for el in element:
             if self.is_tag_ok(el.tag):
-                sub_el_text = unicode(getattr(el, u'text', u'') or u'')
+                sub_el_text = str(getattr(el, 'text', '') or '')
                 sub_el_text = sub_el_text.strip()
-                sub_texts += u' '
+                sub_texts += ' '
                 sub_texts += sub_el_text
                 if sub_el_text:
                     sub_texts_count += 1
@@ -150,15 +148,15 @@ class WebParser(object):
 
     def create_out_file(self):
         out_file_name = self.get_out_file_name()
-        with codecs.open(out_file_name, u'w', encoding=u'utf-8') as f:
+        with codecs.open(out_file_name, 'w', encoding='utf-8') as f:
             f.write(self.out_text)
 
     def get_out_file_name(self):
-        url_parse_res = urlparse(self.webpage_url)
+        url_parse_res = urllib.parse.urlparse(self.webpage_url)
         unormalize_file_dir_path = url_parse_res.hostname + url_parse_res.path
-        normalize_file_dir_path = urllib.pathname2url(unormalize_file_dir_path)
-        out_file_dir_path = os.path.join(u'out_files', normalize_file_dir_path)
+        normalize_file_dir_path = urllib.request.pathname2url(unormalize_file_dir_path)
+        out_file_dir_path = os.path.join('out_files', normalize_file_dir_path)
         if not os.path.isdir(out_file_dir_path):
             os.makedirs(out_file_dir_path)
-        file_name = os.path.join(out_file_dir_path, u'parse_result.txt')
+        file_name = os.path.join(out_file_dir_path, 'parse_result.txt')
         return file_name
