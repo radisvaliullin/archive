@@ -4,6 +4,7 @@ The some test task.
 
 ## Requirements:
 Python 3.4.x.
+lxml 3.6.0.
 
 
 ## Description:

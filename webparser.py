@@ -12,23 +12,25 @@ web_parser.webpage_parse()
 web_parser.create_out_file()
 
 
-# webparser.simple_parse()
-# webparser.create_out_file()
+sites = [
+    'https://lenta.ru/news/2016/06/20/baribal_attacks/',
+    'https://lenta.ru/news/2016/06/20/batman/',
+    'http://www.gazeta.ru/politics/news/2016/06/20/n_8783951.shtml',
 
-# sites = [
-#     'lenta.ru', 'gazeta.ru', 'meduza.io', 'news.yandex.ru', 'f1news.ru',
-# ]
-#
-# for page in sites:
-#
-#     parser = WebParser(page)
-#
-#     parser.simple_parse_v2()
-#     parser.create_out_file('.'.join([
-#         u''.join(['tree__', page.replace('.', '_')]),
-#         'txt'
-#     ]))
-#
-#     parser.out_text = u''
-#     parser.simple_parse_v4()
-#     parser.create_out_file('.'.join([page.replace('.', '_'), 'txt']))
+    'http://www.f1news.ru/news/f1-113012.html',
+    'http://www.f1news.ru/Championship/2016/europe/race.shtml',
+
+    # 'https://meduza.io/feature/2016/06/20/izgnanie-islamskogo-gosudarstva',
+    # 'https://meduza.io/news/2016/06/20/oon-soobschila-o-rekordnom-chisle-bezhentsev-v-2015-godu',
+
+    'https://news.yandex.ru/yandsearch?cl4url=www.kommersant.ru%2Fdoc%2F3018006&lr=43&lang=ru&rubric=index',
+
+    'http://matchtv.ru/news/uefa-ne-soglasoval-zapros-rossii-na-traurnye-povyazki-vo-vremya-matcha-protiv-uelsa/',
+
+]
+
+for page in sites:
+
+    web_parser = WebParser(page)
+    web_parser.webpage_parse()
+    web_parser.create_out_file()

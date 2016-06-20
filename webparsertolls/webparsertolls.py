@@ -4,12 +4,13 @@ import os
 import textwrap
 import urllib
 
-from lxml import etree, html
+from lxml import html
 
 
 class WebParser(object):
 
     def __init__(self, url):
+
         if url.startswith('http://') or url.startswith('https://'):
             self.webpage_url = url
         else:
@@ -17,127 +18,88 @@ class WebParser(object):
 
         self.out_text = ''
 
-        self.special_tag = []
-        self.enable_tag = []
-        self.exclude_tag = ['script']
+        self.exclude_tag = ['script', 'style']
         self.tags_stack = []
 
     def webpage_parse(self):
-        url_parse_res = urllib.parse.urlparse(self.webpage_url)
-        if url_parse_res.path:
-            self.webpage_article_parse()
-        else:
-            self.webpage_main_parse()
 
-    def webpage_main_parse(self):
-        tree = self.get_webpage_html_tree()
-        root_element = tree.getroot()
-        self.tags_stack = []
-        self.recursive_text_graber(root_element)
+        self.webpage_article_parse()
 
     def webpage_article_parse(self):
+
         tree = self.get_webpage_html_tree()
         root_element = tree.getroot()
         self.tags_stack = []
         self.webpage_article_text_grab(root_element)
 
-    def get_webpage_html_source(self):
-        response = urllib.request.urlopen(self.webpage_url)
-        charset = response.headers.getparam('charset')
-        webpage_html_source = str(response.read(), encoding=charset)
-        return webpage_html_source
-
     def get_webpage_html_tree(self):
+
         response = urllib.request.urlopen(self.webpage_url)
         charset = response.headers.get_param('charset')
         setup_parser = html.HTMLParser(encoding=charset)
         tree = html.parse(response, parser=setup_parser)
+
         return tree
-
-    def recursive_text_graber(self, element):
-
-        self.tags_stack.append(str(element.tag))
-
-        if self.is_tag_ok(element.tag):
-
-            if self.is_el_text_ok(element):
-
-                el_text = str(getattr(element, 'text', '') or '')
-                self.out_text += '\n'
-                self.out_text += ''.join([
-                    self.format_text_by_80_chars_in_line(el_text), '\n',
-                ])
-
-        for sub_el in element:
-            self.recursive_text_graber(sub_el)
-
-        self.tags_stack.pop()
 
     def webpage_article_text_grab(self, element):
 
+        self.article_text_recursive_grabber(element)
+
+    def article_text_recursive_grabber(self, element):
+
         self.tags_stack.append(str(element.tag))
 
-        if self.is_art_pg_tag_ok(element.tag):
+        el_level_text = ''
 
-            if self.is_el_text_ok(element):
-
-                el_text = str(getattr(element, 'text', '') or '')
-                self.out_text += '\n'
-                self.out_text += ''.join([
-                    self.format_text_by_80_chars_in_line(el_text), '\n',
-                ])
+        element_text = self.get_element_text(element)
+        el_level_text += ''.join([self.format_text_by_80_chars_in_line(element_text), '\n', ]) if element_text else ''
 
         for sub_el in element:
-            self.recursive_text_graber(sub_el)
+
+            sub_element_text = self.get_sub_element_text(sub_el)
+            if sub_element_text:
+                el_level_text += '\n' if el_level_text else ''
+                el_level_text += ''.join([self.format_text_by_80_chars_in_line(sub_element_text), '\n', ])
+            else:
+                el_level_text += ''
+
+        if len(el_level_text) > len(self.out_text):
+            self.out_text = el_level_text
+
+        for sub_el in element:
+            self.article_text_recursive_grabber(sub_el)
 
         self.tags_stack.pop()
 
-    def is_tag_ok(self, el_tag):
-        res = (
-            isinstance(el_tag, str) and
-            el_tag not in self.exclude_tag and
-            (
-                self.tags_stack[:2] != ['html', 'head'] or
-                (
-                    self.tags_stack[:2] == ['html', 'head'] and
-                    el_tag == 'title'
-                )
-            )
-        )
-        return res
+    def get_element_text(self, element):
 
-    def is_art_pg_tag_ok(self, el_tag):
+        element_text = ''
+        if self.is_articlte_page_tag_ok(element.tag):
+            element_text += getattr(element, 'text', '') or ''
+
+        return element_text
+
+    def get_sub_element_text(self, sub_element):
+
+        sub_element_text = ''
+
+        if self.is_articlte_page_tag_ok(sub_element.tag):
+
+            sub_element_text += getattr(sub_element, 'text', '') or ''
+
+            for sub_sub_el in sub_element:
+                if sub_sub_el.tag == 'a' and sub_sub_el.text:
+                    sub_element_text += getattr(sub_sub_el, 'text', '') or ''
+                    sub_element_text += ' [{link}]'.format(link=sub_sub_el.attrib.get('href', ''))
+                    sub_element_text += getattr(sub_sub_el, 'tail', '') or ''
+
+        return sub_element_text
+
+    def is_articlte_page_tag_ok(self, el_tag):
         res = (
             isinstance(el_tag, str) and
             el_tag not in self.exclude_tag and
             self.tags_stack[:2] == ['html', 'body']
-        )
-        return res
-
-    def is_el_text_ok(self, element):
-        el_text = str(getattr(element, 'text', '') or '')
-        res = (
-            len(el_text.strip().split()) >= 4 or
-            self.is_sub_elements_text_len_ok(element)
-        )
-        return res
-
-    def is_sub_elements_text_len_ok(self, element):
-        el_text = str(getattr(element, 'text', '') or '')
-        sub_texts = ''
-        sub_texts_count = 0
-        for el in element:
-            if self.is_tag_ok(el.tag):
-                sub_el_text = str(getattr(el, 'text', '') or '')
-                sub_el_text = sub_el_text.strip()
-                sub_texts += ' '
-                sub_texts += sub_el_text
-                if sub_el_text:
-                    sub_texts_count += 1
-        res = (
-            len(el_text.strip().split()) >= 1 and
-            len(sub_texts.strip().split()) > 5 and
-            sub_texts_count >= 1
         )
         return res
 
