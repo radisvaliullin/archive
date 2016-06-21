@@ -16,7 +16,7 @@ class WebParser(object):
         self.out_text = ''
         # out_texts = [(text, parts_count), ...]
         self.out_texts = []
-        self.out_text_max_density = 0
+        self.out_texts_max_density = 0
         self.out_text_density_coeff = 0.33
 
         self.out_files_dir = 'out_files'
@@ -50,8 +50,9 @@ class WebParser(object):
 
         tree = self.get_webpage_html_tree()
         root_element = tree.getroot()
+        self.out_text = ''
         self.out_texts = []
-        self.out_text_max_density = 0
+        self.out_texts_max_density = 0
         self.tags_stack = []
         self.webpage_article_text_grab(root_element)
 
@@ -67,63 +68,70 @@ class WebParser(object):
     def webpage_article_text_grab(self, element):
 
         self.article_text_recursive_grabber(element)
-        self.choose_best_text()
+        self.choose_best_out_text()
+        self.formating_out_text()
 
     def article_text_recursive_grabber(self, element):
 
         self.tags_stack.append(str(element.tag))
 
-        el_level_text = ''
-        el_level_text_part_count = 0
+        element_level_text = self.get_element_level_text(element)
 
-        element_text = self.get_element_text(element)
-        el_level_text += ''.join([self.format_text_by_80_chars_in_line(element_text), '\n', ]) if element_text else ''
-        el_level_text_part_count += 1 if el_level_text else 0
+        if element_level_text:
 
-        for sub_el in element:
+            el_text_parts_count = len(element_level_text.split('\n'))
+            el_text_density = len(element_level_text)/el_text_parts_count
+            self.out_texts.append((
+                element_level_text,
+                el_text_parts_count,
+                el_text_density,
+            ))
 
-            sub_element_text = self.get_sub_element_text(sub_el)
-            if sub_element_text:
-                el_level_text += '\n' if el_level_text else ''
-                el_level_text += ''.join([self.format_text_by_80_chars_in_line(sub_element_text), '\n', ])
-                el_level_text_part_count += 1
-            else:
-                el_level_text += ''
-
-        if el_level_text:
-            self.out_texts.append((el_level_text, el_level_text_part_count))
-
-            if len(el_level_text)/el_level_text_part_count > self.out_text_max_density:
-                self.out_text_max_density = len(el_level_text)/el_level_text_part_count
+            if el_text_density > self.out_texts_max_density:
+                self.out_texts_max_density = el_text_density
 
         for sub_el in element:
             self.article_text_recursive_grabber(sub_el)
 
         self.tags_stack.pop()
 
+    def get_element_level_text(self, element, level=0):
+
+        self.tags_stack.append(str(element.tag))
+
+        element_level_text = self.get_element_text(element)
+
+        if level < 3:
+
+            for sub_el in element:
+
+                sub_element_text = self.get_element_level_text(sub_el, level=level+1)
+
+                element_level_text += sub_element_text
+
+        self.tags_stack.pop()
+
+        return element_level_text
+
     def get_element_text(self, element):
 
         element_text = ''
+        text_tag_raw = getattr(element, 'text', '') or ''
+        tail_tag_raw = getattr(element, 'tail', '') or ''
+        text_tag = text_tag_raw.strip()
+        tail_tag = tail_tag_raw.strip()
+
         if self.is_articlte_page_tag_ok(element.tag):
-            element_text += getattr(element, 'text', '') or ''
 
-        return element_text.strip()
+            if tail_tag:
+                element_text += ' ' + text_tag if text_tag else ''
+                if hasattr(element, 'attrib') and element.attrib.get('href', ''):
+                    element_text += ' [{link}]'.format(link=element.attrib.get('href', ''))
+                element_text += ' ' + tail_tag
+            else:
+                element_text += '\n' + text_tag if text_tag else ''
 
-    def get_sub_element_text(self, sub_element):
-
-        sub_element_text = ''
-
-        if self.is_articlte_page_tag_ok(sub_element.tag):
-
-            sub_element_text += getattr(sub_element, 'text', '') or ''
-
-            for sub_sub_el in sub_element:
-                if sub_sub_el.tag == 'a' and sub_sub_el.text:
-                    sub_element_text += getattr(sub_sub_el, 'text', '') or ''
-                    sub_element_text += ' [{link}]'.format(link=sub_sub_el.attrib.get('href', ''))
-                    sub_element_text += getattr(sub_sub_el, 'tail', '') or ''
-
-        return sub_element_text.strip()
+        return element_text
 
     def is_articlte_page_tag_ok(self, el_tag):
         res = (
@@ -133,15 +141,22 @@ class WebParser(object):
         )
         return res
 
-    def choose_best_text(self):
+    def choose_best_out_text(self):
         self.out_text = ''
-        for txt, cnt in self.out_texts:
+        for txt, cnt, den in self.out_texts:
             if (
                 txt and
-                len(txt)/cnt > self.out_text_max_density * self.out_text_density_coeff and
+                # den > self.out_texts_max_density * self.out_text_density_coeff and
                 len(txt) > len(self.out_text)
             ):
                 self.out_text = txt
+
+    def formating_out_text(self):
+        self.out_text = '\n\n'.join([
+            self.format_text_by_80_chars_in_line(text_part)
+            for text_part in self.out_text.split('\n')
+        ])
+        self.out_text += '\n'
 
     @staticmethod
     def format_text_by_80_chars_in_line(text):

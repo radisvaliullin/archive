@@ -8,7 +8,7 @@ from webparsertolls.webparsertolls import WebParser
 
 args_parser = argparse.ArgumentParser(description='Simple web arcticle parser.')
 args_parser.add_argument('url', nargs='?', default='', help='url to article web page.')
-args_parser.add_argument('-p', help='Density coefficient.')
+args_parser.add_argument('-d', help='Density coefficient.')
 args_parser.add_argument('-o', help='Output file folder.')
 args = args_parser.parse_args()
 
@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     web_parser = WebParser()
     web_parser.setup(
-        density_coeff=args.p and float(args.p) or float(config_parser['DEFAULT']['DENSITY']),
+        density_coeff=args.d and float(args.d) or float(config_parser['DEFAULT']['DENSITY_COEFF']),
         out_dir=args.o or config_parser['DEFAULT']['OUT_PATH']
     )
 
