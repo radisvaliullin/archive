@@ -13,6 +13,7 @@ class WebParser(object):
 
         self.webpage_url = ''
 
+        self.element_text_search_levels = 2
         self.out_text = ''
         # out_texts = [(text, parts_count), ...]
         self.out_texts = []
@@ -24,10 +25,11 @@ class WebParser(object):
         self.exclude_tag = ['script', 'style']
         self.tags_stack = []
 
-    def setup(self, url='', density_coeff=0, out_dir=''):
+    def setup(self, url='', density_coeff=0, out_dir='', text_search_levels=0):
         if url:self.set_webpage_url(url)
         if density_coeff: self.set_density_coeff(density_coeff)
         if out_dir: self.set_out_dir(out_dir)
+        if text_search_levels: self.set_text_search_levels(text_search_levels)
 
     def set_webpage_url(self, url):
         if url.startswith('http://') or url.startswith('https://'):
@@ -40,6 +42,9 @@ class WebParser(object):
 
     def set_out_dir(self, out_dir):
         self.out_files_dir = out_dir
+
+    def set_text_search_levels(self, text_search_levels):
+        self.element_text_search_levels = text_search_levels
 
     def webpage_parse(self):
 
@@ -101,7 +106,7 @@ class WebParser(object):
 
         element_level_text = self.get_element_text(element)
 
-        if level < 3:
+        if level <= self.element_text_search_levels:
 
             for sub_el in element:
 
