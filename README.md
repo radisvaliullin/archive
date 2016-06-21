@@ -2,8 +2,12 @@
 The some test task.
 
 
-# to run
+## to run
 python3 webparser.py some_url
+
+
+## look result
+ALGORITHM_AND_RESULT_DESCRIPTION.txt
 
 
 ## Requirements:

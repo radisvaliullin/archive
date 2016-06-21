@@ -7,7 +7,7 @@ from urllib import request, parse
 from lxml import html
 
 
-class WebParser(object):
+class WebParser():
 
     def __init__(self):
 
