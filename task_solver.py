@@ -43,4 +43,4 @@ if __name__ == '__main__':
 
         print(output_value + '-----')
 
-    print(timeit.default_timer() - start_time)
+    # print(timeit.default_timer() - start_time)

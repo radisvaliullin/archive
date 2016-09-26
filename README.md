@@ -5,7 +5,7 @@ The tesk task 5.
 python 3.5.x
 
 # To Run:
-python3 tasks_list.txt (or your file)
+python3 task_solver.py tasks_list.txt (or your file)
 
 # Comment for output:
 If map have size bigger than 5 x 5, script run more than 5 secons.
