@@ -52,28 +52,72 @@ def get_next_biggest_with_use_same_digits(number):
     return next_biggest
 
 
-# def get_all_posible_track_to_map(map_n, map_m, str_pos_x, str_pos_y, end_pos_x, end_pos_y):
-#     track_counts = 0
-#
-#     finded_tracks = []
-#     looked_matrix = {}
-#
-#     looked_matrix[(str_pos_x, str_pos_y)] = get_posible_steps(map_str_pos_x, str_pos_y)
-#
-#     return track_counts
+class MapTrackSearcher:
 
-
-class MapTrackSearcher():
-
-    def __init__(self, map_n, map_m, str_pos_x, str_pos_y, end_pos_x, end_pos, y):
+    def __init__(self, map_n, map_m, spos_x, spos_y, epos_x, epos_y):
         """
 
-        :param map_n:
-        :param map_m:
-        :param str_pos_x:
-        :param str_pos_y:
-        :param end_pos_x:
-        :param end_pos:
-        :param y:
+        :param map_n: map rows;
+        :param map_m: map columns;
+        :param spos_x: start position rows coordinate;
+        :param spos_y: start position columns coordinate;
+        :param epos_x: end position rows coordinate;
+        :param epos_y: end position columns coordinate,
         """
-        pass
+        self.map_n = map_n
+        self.map_m = map_m
+        self.spos_x = spos_x
+        self.spos_y = spos_y
+        self.spos = (self.spos_x, self.spos_y)
+        self.epos_x = epos_x
+        self.epos_y = epos_y
+        self.epos = (self.epos_x, self.epos_y)
+
+        self.track_counts = 0
+
+        self.curr_pos = self.spos
+        self.curr_chain = [self.spos]
+        self.found_tracks = []
+        self.looking_tree = []
+
+    def get_all_posible_tracks_count(self):
+
+        self.looking_tree = [self.get_next_posible_steps(*self.curr_pos)]
+
+        while self.looking_tree:
+
+            if self.looking_tree[-1]:
+
+                self.curr_pos = self.looking_tree[-1].pop()
+
+                if self.curr_pos == self.epos:
+
+                    self.track_counts += 1
+
+                else:
+
+                    self.curr_chain.append(self.curr_pos)
+                    self.looking_tree.append(self.get_next_posible_steps(*self.curr_pos))
+
+            else:
+
+                self.looking_tree.pop()
+                self.curr_chain.pop()
+
+        all_tracks_count = self.track_counts
+        return all_tracks_count
+
+    def get_next_posible_steps(self, pos_x, pos_y):
+        allows_points = []
+        if (pos_x - 1) >= 0:
+            allows_points.append((pos_x - 1, pos_y))
+        if (pos_y - 1) >= 0:
+            allows_points.append((pos_x, pos_y - 1))
+        if (pos_x + 1) <= (self.map_n - 1):
+            allows_points.append((pos_x + 1, pos_y))
+        if (pos_y + 1) <= (self.map_m - 1):
+            allows_points.append((pos_x, pos_y + 1))
+        allows_points = [
+            pos for pos in allows_points if (pos not in self.curr_chain) or (pos == self.epos)
+        ]
+        return allows_points
