@@ -121,3 +121,29 @@ class MapTrackSearcher:
             pos for pos in allows_points if (pos not in self.curr_chain) or (pos == self.epos)
         ]
         return allows_points
+
+
+def get_list_of_string_patterns(in_string):
+
+    # Minimum size for pattern chars.
+    min_patt_len = 2
+    # Minimum pattern repeats.
+    min_patt_rep = 2
+    # Patterns positins store.
+    patterns_pos = {}
+    # Patterns list.
+    patterns = []
+
+    for str_idx in range(len(in_string)):
+        for end_idx in range((str_idx + min_patt_len - 1), len(in_string)):
+            pattern = in_string[str_idx: end_idx + 1]
+            if pattern in patterns_pos:
+                patterns_pos[pattern].append(str_idx)
+            else:
+                patterns_pos[pattern] = [str_idx]
+
+    patterns = sorted(
+        [patt for patt, patt_pos in patterns_pos.items() if len(patt_pos) >= min_patt_rep],
+        key=len, reverse=True
+    )
+    return patterns

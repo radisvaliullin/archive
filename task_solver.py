@@ -4,7 +4,7 @@
 import argparse
 import timeit
 
-from task_solver_libs import get_next_biggest_with_use_same_digits, MapTrackSearcher
+from task_solver_libs import get_next_biggest_with_use_same_digits, MapTrackSearcher, get_list_of_string_patterns
 
 start_time = timeit.default_timer()
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
         if len(line_vals) == 1 and line_vals[0].isdecimal():
 
-            next_biggest = get_next_biggest_with_use_same_digits(int(line))
+            next_biggest = get_next_biggest_with_use_same_digits(int(line_vals[0]))
             output_value = str(next_biggest)
 
         elif len(line_vals) == 6:
@@ -33,6 +33,10 @@ if __name__ == '__main__':
             mts = MapTrackSearcher(line_vals[0], line_vals[1], line_vals[2], line_vals[3], line_vals[4], line_vals[5])
             track_counts = mts.get_all_posible_tracks_count()
             output_value = str(track_counts)
+
+        elif len(line_vals) == 1 and line_vals[0].isalnum():
+            patterns = get_list_of_string_patterns(line_vals[0])
+            output_value = ' '.join(patterns) or 'None'
 
         else:
             output_value = 'Unparsed line.'
