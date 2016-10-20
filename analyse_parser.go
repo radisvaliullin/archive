@@ -8,11 +8,14 @@ import (
     "os"
 
     "golang.org/x/net/html"
-    //"net/http"
-    //"golang.org/x/net/html/charset"
+    "net/http"
+    "golang.org/x/net/html/charset"
+    //"time"
+    "time"
 )
 
-// A parsing page urls
+
+// Parsing page urls
 const domain_url string = "https://www.invitro.ru"
 const analyzes_url string = "/analizes/for-doctors/"
 const base_url string = domain_url + analyzes_url
@@ -22,7 +25,8 @@ const detailPrep string = "link_84"
 const detailIndic string = "link_81"
 const detailInterp string = "link_82"
 
-var quit int = 0
+
+var test_cnt int = 0
 
 
 func main() {
@@ -31,27 +35,26 @@ func main() {
     // getting the base_url page's html.
     //
     // get http.Get respond
-    //resp, err := http.Get(base_url)
-    //if err != nil {
-    //    fmt.Println("Error http.Get:", err)
-    //    return
-    //}
-    //defer resp.Body.Close()
-    //// convert to UTF-8
-    //html_utf8_rd, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
-    //if err != nil {
-    //    fmt.Println("Error converting win-1251 to utf-8:", err)
-    //    return
-    //}
-    //return html_utf8_rd
-
-    // html from saved file (for testing).
-    html_utf8_rd, err := os.Open("test_base_page.html")
+    resp, err := http.Get(base_url)
     if err != nil {
-        fmt.Println("Error open file:", err)
+        fmt.Println("Error http.Get:", err)
         return
     }
-    defer html_utf8_rd.Close()
+    defer resp.Body.Close()
+    // convert to UTF-8
+    html_utf8_rd, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
+    if err != nil {
+        fmt.Println("Error converting win-1251 to utf-8:", err)
+        return
+    }
+
+    // html from saved file (for testing).
+    //html_utf8_rd, err := os.Open("test_base_page.html")
+    //if err != nil {
+    //    fmt.Println("Error open file:", err)
+    //    return
+    //}
+    //defer html_utf8_rd.Close()
 
     // html parsing, get html nodes tree
     html_tree, err :=	html.Parse(html_utf8_rd)
@@ -63,16 +66,16 @@ func main() {
     // get analyzes catalog nodes tree
     analyzes_tree := getAnalyzesCatalogTree(html_tree)
 
-    // chan for writing analyzes to file
+    // chan for writing analyzes to DB
     analyse_chan := make(chan Analyse)
 
-    // run file write goruotine
-    go writeToFile(analyse_chan)
+    // run to DB write goruotine
+    go writeToDB(analyse_chan)
 
     // analyzes catalog parsing
     parseAnalyzesTree(&ParserState{}, analyzes_tree, analyse_chan)
 
-    //time.Sleep(time.Second * 4)
+    time.Sleep(time.Second * 10)
 
 }
 
@@ -135,6 +138,9 @@ type ParserState struct {
 
 
 func parseAnalyzesTree(state *ParserState, n *html.Node, analyse_chan chan Analyse) {
+    // analyse parsing limit
+    if test_cnt > 20 { return }
+
     if n.Type == html.ElementNode {
         // set level in analyzes catalog
         if n.Data == "td" {
@@ -175,7 +181,10 @@ func parseAnalyzesTree(state *ParserState, n *html.Node, analyse_chan chan Analy
                         Kind:n.FirstChild.Data,
                         DetailUrl:a.Val,
                     }
-                    analyse_chan <- analyse
+
+                    // get analyse detail in goroutine
+                    go getAnalyseDetailByURL(analyse, analyse_chan)
+                    test_cnt += 1
                 }
             }
         }
@@ -212,16 +221,17 @@ func getDetailsNodeText(lv int, out_tree[]string, n *html.Node) []string {
 }
 
 
-func writeToFile(analyse_chan chan Analyse) {
+func writeToDB(analyse_chan chan Analyse) {
     file, err := os.Create("analyzes_hierarchy.txt")
     if err != nil {
+        fmt.Println("Analyzes hierarchy.", err)
         return
     }
     defer file.Close()
 
     for a := range analyse_chan {
 
-        a = getAnalyseDetailByURL(a)
+        //a = getAnalyseDetailByURL(a)
 
         file.WriteString("--" + a.Type + "\n")
         file.WriteString("----" + a.Subtype + "\n")
@@ -234,18 +244,35 @@ func writeToFile(analyse_chan chan Analyse) {
 }
 
 
-func getAnalyseDetailByURL(analyse Analyse) Analyse {
-
-    if analyse.DetailUrl != "/analizes/for-doctors/156/28932/" { return analyse }
+func getAnalyseDetailByURL(analyse Analyse, analyse_chan chan Analyse) {
 
     // get analyse kind's detail information
     //
     // html parsing, get html nodes tree for detail
+    //
+    // invalid url
+    if !strings.HasPrefix(analyse.DetailUrl, analyzes_url) {return}
+
+    // get http.Get respond
+    resp, err := http.Get(domain_url + analyse.DetailUrl)
+    if err != nil {
+        fmt.Println("Error http.Get:", err)
+        return
+    }
+    defer resp.Body.Close()
+    // convert to UTF-8
+    details_html_rd, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
+    if err != nil {
+        fmt.Println("Error converting win-1251 to utf-8:", err)
+        return
+    }
     // for testing get from file.
-    details_html_rd, _ := os.Open("test_156_28932.html")
-    defer details_html_rd.Close()
+    //details_html_rd, _ := os.Open("test_156_28932.html")
+    //defer details_html_rd.Close()
+
     details_html_tree, _ :=	html.Parse(details_html_rd)
     details_node := getDetailsNode(details_html_tree)
+    if details_node == nil {return}
     details_subnodes_raw := details_node.FirstChild.Data
 
     details_subnodes_htmls := getDetailsSubnodesHTMLs(details_subnodes_raw)
@@ -264,8 +291,8 @@ func getAnalyseDetailByURL(analyse Analyse) Analyse {
             analyse.DetailInterp = detail_text
         }
     }
-
-    return analyse
+    // set analyse to chan
+    analyse_chan <- analyse
 }
 
 
