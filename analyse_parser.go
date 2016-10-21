@@ -5,13 +5,14 @@ package main
 import (
     "fmt"
     "strings"
-    "os"
 
     "golang.org/x/net/html"
     "net/http"
     "golang.org/x/net/html/charset"
     //"time"
     "time"
+    "database/sql"
+    _ "github.com/mattn/go-sqlite3"
 )
 
 
@@ -75,7 +76,7 @@ func main() {
     // analyzes catalog parsing
     parseAnalyzesTree(&ParserState{}, analyzes_tree, analyse_chan)
 
-    time.Sleep(time.Second * 10)
+    time.Sleep(time.Second * 5)
 
 }
 
@@ -139,7 +140,7 @@ type ParserState struct {
 
 func parseAnalyzesTree(state *ParserState, n *html.Node, analyse_chan chan Analyse) {
     // analyse parsing limit
-    if test_cnt > 20 { return }
+    if test_cnt >= 1 { return }
 
     if n.Type == html.ElementNode {
         // set level in analyzes catalog
@@ -195,8 +196,7 @@ func parseAnalyzesTree(state *ParserState, n *html.Node, analyse_chan chan Analy
 }
 
 
-func getDetailsNodeText(lv int, out_tree[]string, n *html.Node) []string {
-    lv += 2
+func getDetailsNodeText(out_tree[]string, n *html.Node) []string {
     if n.Type == html.ElementNode {
         if n.Data == "br" {
             out_tree = append(out_tree, "\n")
@@ -215,31 +215,100 @@ func getDetailsNodeText(lv int, out_tree[]string, n *html.Node) []string {
         }
     }
     for ch := n.FirstChild; ch != nil; ch = ch.NextSibling {
-        out_tree = getDetailsNodeText(lv, out_tree, ch)
+        out_tree = getDetailsNodeText(out_tree, ch)
     }
     return out_tree
 }
 
 
 func writeToDB(analyse_chan chan Analyse) {
-    file, err := os.Create("analyzes_hierarchy.txt")
+
+    // open DB
+    db, err := sql.Open("sqlite3", "./analyzes.db")
     if err != nil {
-        fmt.Println("Analyzes hierarchy.", err)
-        return
+        panic(err)
     }
-    defer file.Close()
+    defer db.Close()
+    // create tables
+    sql_request := `
+        CREATE TABLE 'analyse_type'
+            (
+                'id' INTEGER PRIMARY KEY AUTOINCREMENT,
+                'type_name' TEXT NULL
+            );
+        CREATE TABLE 'analyse_subtype'
+            (
+                'id' INTEGER PRIMARY KEY AUTOINCREMENT,
+                'subtype_name' TEXT NULL,
+                'type' INTEGER NULL,
+                constraint fk_analysesubtype_analysetype foreign key (type) references analyse_type (id)
+            );
+        CREATE TABLE 'analyse'
+            (
+                'id' INTEGER PRIMARY KEY AUTOINCREMENT,
+                'type' INTEGER NULL,
+                'subtype' INTEGER NULL,
+                'analyse_kind' TEXT NULL,
+                'decribe' TEXT NULL,
+                'prepare' TEXT NULL,
+                'indications' TEXT NULL,
+                'interpritation' TEXT NULL,
+                constraint fk_analyse_analysetype foreign key (type) references analyse_type (id),
+                constraint fk_analyse_analysesubtype foreign key (subtype) references analyse_subtype (id)
+            );
+
+    `
+    _, err = db.Exec(sql_request)
+    if err != nil {
+        panic(err)
+    }
+
+    // write to file for testing
+    //file, err := os.Create("analyzes_hierarchy.txt")
+    //if err != nil {
+    //    fmt.Println("Analyzes hierarchy.", err)
+    //    return
+    //}
+    //defer file.Close()
 
     for a := range analyse_chan {
 
-        //a = getAnalyseDetailByURL(a)
+        var type_id int64
+        err = db.QueryRow("SELECT id FROM analyse_type WHERE type_name =? LIMIT 1;", a.Type).Scan(&type_id)
+        if err == sql.ErrNoRows {
+            res, _ := db.Exec("INSERT INTO analyse_type(type_name) values(?);", a.Type)
+            type_id, err = res.LastInsertId()
+        } else if err != nil {
+            panic(err)
+        }
 
-        file.WriteString("--" + a.Type + "\n")
-        file.WriteString("----" + a.Subtype + "\n")
-        file.WriteString("------" + a.Kind + "\n")
-        file.WriteString("--------" + a.DetailDesc + "\n")
-        file.WriteString("--------" + a.DetailPrep + "\n")
-        file.WriteString("--------" + a.DetailIndic + "\n")
-        file.WriteString("--------" + a.DetailInterp + "\n")
+        if a.Subtype != "" {
+            var subtype_id int64
+            err = db.QueryRow("SELECT id FROM analyse_subtype WHERE subtype_name =? LIMIT 1;", a.Subtype).Scan(&subtype_id)
+            if err == sql.ErrNoRows {
+                res, _ := db.Exec("INSERT INTO analyse_subtype(subtype_name, type) values(?, ?);", a.Subtype, type_id)
+                subtype_id, err = res.LastInsertId()
+            } else if err != nil {
+                panic(err)
+            }
+
+            sql_insert := "INSERT INTO analyse(type, subtype, analyse_kind, decribe, prepare, indications, interpritation) values(?, ?, ?, ?, ?, ?, ?);"
+            //sql_insert := "INSERT INTO analyse(type, subtype, analyse_kind) values(?, ?, ?);"
+            res, _ := db.Exec(sql_insert, type_id, subtype_id, a.Kind, a.DetailDesc, a.DetailPrep, a.DetailIndic, a.DetailInterp)
+            //res, _ := db.Exec(sql_insert, type_id, subtype_id, a.Kind)
+            _, err := res.LastInsertId()
+            if err != nil {
+                panic(err)
+            }
+        }
+
+        //file.WriteString("--" + a.Type + "\n")
+        //file.WriteString("----" + a.Subtype + "\n")
+        //file.WriteString("------" + a.Kind + "\n")
+        //file.WriteString("--------" + a.DetailDesc + "\n")
+        //file.WriteString("--------" + a.DetailPrep + "\n")
+        //file.WriteString("--------" + a.DetailIndic + "\n")
+        //file.WriteString("--------" + a.DetailInterp + "\n")
     }
 }
 
@@ -279,7 +348,7 @@ func getAnalyseDetailByURL(analyse Analyse, analyse_chan chan Analyse) {
 
     for det, d_html := range details_subnodes_htmls {
         detail, _ := html.Parse(strings.NewReader(d_html))
-        detail_text := strings.Join(getDetailsNodeText(0, nil, detail), "")
+        detail_text := strings.Join(getDetailsNodeText(nil, detail), "")
         detail_text = strings.TrimSpace(detail_text)
         if det == detailDesc {
             analyse.DetailDesc = detail_text
