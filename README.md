@@ -1,6 +1,13 @@
 # test_task_6
 Some test task on Golang.
 
+# Solution description.
+1. Get html tree for page with all analyzes.
+ 2. Get and parsing analyzes node.
+ 3. For each analyse run new goroutine witch parsing analyse's detail page.
+   4. Parsed analyse with details putting to chan.
+   5. Special goroutine take analyse from chan and put to DB.
+
 # Task description.
 ТЗ “Инвитро”
 
