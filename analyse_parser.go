@@ -9,10 +9,11 @@ import (
     "golang.org/x/net/html"
     "net/http"
     "golang.org/x/net/html/charset"
-    //"time"
-    "time"
     "database/sql"
     _ "github.com/mattn/go-sqlite3"
+
+    "time"
+    "sync"
 )
 
 
@@ -28,6 +29,7 @@ const detailInterp string = "link_82"
 
 
 var test_cnt int = 0
+var wg sync.WaitGroup
 
 
 func main() {
@@ -69,15 +71,27 @@ func main() {
 
     // chan for writing analyzes to DB
     analyse_chan := make(chan Analyse)
+    quit := make(chan int)
 
     // run to DB write goruotine
-    go writeToDB(analyse_chan)
+    go writeToDB(analyse_chan, quit)
 
     // analyzes catalog parsing
     parseAnalyzesTree(&ParserState{}, analyzes_tree, analyse_chan)
 
-    time.Sleep(time.Second * 5)
-
+    //time.Sleep(time.Second * 5)
+    wg.Wait()
+    close(analyse_chan)
+    for {
+		select {
+		case <- quit:
+            fmt.Println("quit")
+			return
+		default:
+			time.Sleep(50 * time.Millisecond)
+            //fmt.Println("50ms")
+		}
+    }
 }
 
 
@@ -140,7 +154,7 @@ type ParserState struct {
 
 func parseAnalyzesTree(state *ParserState, n *html.Node, analyse_chan chan Analyse) {
     // analyse parsing limit
-    if test_cnt >= 1 { return }
+    if test_cnt >= 5 { return }
 
     if n.Type == html.ElementNode {
         // set level in analyzes catalog
@@ -183,6 +197,7 @@ func parseAnalyzesTree(state *ParserState, n *html.Node, analyse_chan chan Analy
                         DetailUrl:a.Val,
                     }
 
+                    wg.Add(1)
                     // get analyse detail in goroutine
                     go getAnalyseDetailByURL(analyse, analyse_chan)
                     test_cnt += 1
@@ -221,7 +236,7 @@ func getDetailsNodeText(out_tree[]string, n *html.Node) []string {
 }
 
 
-func writeToDB(analyse_chan chan Analyse) {
+func writeToDB(analyse_chan chan Analyse, quit chan int) {
 
     // open DB
     db, err := sql.Open("sqlite3", "./analyzes.db")
@@ -310,10 +325,13 @@ func writeToDB(analyse_chan chan Analyse) {
         //file.WriteString("--------" + a.DetailIndic + "\n")
         //file.WriteString("--------" + a.DetailInterp + "\n")
     }
+    fmt.Println("DBDB")
+    quit <- 1
 }
 
 
 func getAnalyseDetailByURL(analyse Analyse, analyse_chan chan Analyse) {
+    defer wg.Done()
 
     // get analyse kind's detail information
     //
