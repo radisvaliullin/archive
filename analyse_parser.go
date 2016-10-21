@@ -12,7 +12,6 @@ import (
     "database/sql"
     _ "github.com/mattn/go-sqlite3"
 
-    "time"
     "sync"
 )
 
@@ -27,9 +26,11 @@ const detailPrep string = "link_84"
 const detailIndic string = "link_81"
 const detailInterp string = "link_82"
 
-
+// node parsing limits, for testing
 var test_cnt int = 0
-var wg sync.WaitGroup
+// sync.WaitGroup
+var parser_wg sync.WaitGroup
+var write_db_wg sync.WaitGroup
 
 
 func main() {
@@ -69,29 +70,20 @@ func main() {
     // get analyzes catalog nodes tree
     analyzes_tree := getAnalyzesCatalogTree(html_tree)
 
-    // chan for writing analyzes to DB
+    // chan for writing to DB analyzes
     analyse_chan := make(chan Analyse)
-    quit := make(chan int)
 
     // run to DB write goruotine
-    go writeToDB(analyse_chan, quit)
+    write_db_wg.Add(1)
+    go writeToDB(analyse_chan)
 
     // analyzes catalog parsing
     parseAnalyzesTree(&ParserState{}, analyzes_tree, analyse_chan)
 
     //time.Sleep(time.Second * 5)
-    wg.Wait()
+    parser_wg.Wait()
     close(analyse_chan)
-    for {
-		select {
-		case <- quit:
-            fmt.Println("quit")
-			return
-		default:
-			time.Sleep(50 * time.Millisecond)
-            //fmt.Println("50ms")
-		}
-    }
+    write_db_wg.Wait()
 }
 
 
@@ -154,7 +146,7 @@ type ParserState struct {
 
 func parseAnalyzesTree(state *ParserState, n *html.Node, analyse_chan chan Analyse) {
     // analyse parsing limit
-    if test_cnt >= 5 { return }
+    if test_cnt >= 50 { return }
 
     if n.Type == html.ElementNode {
         // set level in analyzes catalog
@@ -197,8 +189,8 @@ func parseAnalyzesTree(state *ParserState, n *html.Node, analyse_chan chan Analy
                         DetailUrl:a.Val,
                     }
 
-                    wg.Add(1)
                     // get analyse detail in goroutine
+                    parser_wg.Add(1)
                     go getAnalyseDetailByURL(analyse, analyse_chan)
                     test_cnt += 1
                 }
@@ -236,7 +228,8 @@ func getDetailsNodeText(out_tree[]string, n *html.Node) []string {
 }
 
 
-func writeToDB(analyse_chan chan Analyse, quit chan int) {
+func writeToDB(analyse_chan chan Analyse) {
+    defer write_db_wg.Done()
 
     // open DB
     db, err := sql.Open("sqlite3", "./analyzes.db")
@@ -286,8 +279,10 @@ func writeToDB(analyse_chan chan Analyse, quit chan int) {
     //}
     //defer file.Close()
 
+    // write to DB
     for a := range analyse_chan {
 
+        // Insert analyse_type
         var type_id int64
         err = db.QueryRow("SELECT id FROM analyse_type WHERE type_name =? LIMIT 1;", a.Type).Scan(&type_id)
         if err == sql.ErrNoRows {
@@ -298,6 +293,7 @@ func writeToDB(analyse_chan chan Analyse, quit chan int) {
         }
 
         if a.Subtype != "" {
+            // Insert analyse_subtype
             var subtype_id int64
             err = db.QueryRow("SELECT id FROM analyse_subtype WHERE subtype_name =? LIMIT 1;", a.Subtype).Scan(&subtype_id)
             if err == sql.ErrNoRows {
@@ -306,7 +302,7 @@ func writeToDB(analyse_chan chan Analyse, quit chan int) {
             } else if err != nil {
                 panic(err)
             }
-
+            // Insert analyse
             sql_insert := "INSERT INTO analyse(type, subtype, analyse_kind, decribe, prepare, indications, interpritation) values(?, ?, ?, ?, ?, ?, ?);"
             //sql_insert := "INSERT INTO analyse(type, subtype, analyse_kind) values(?, ?, ?);"
             res, _ := db.Exec(sql_insert, type_id, subtype_id, a.Kind, a.DetailDesc, a.DetailPrep, a.DetailIndic, a.DetailInterp)
@@ -315,8 +311,19 @@ func writeToDB(analyse_chan chan Analyse, quit chan int) {
             if err != nil {
                 panic(err)
             }
+        } else {
+            // Insert analyse
+            sql_insert := "INSERT INTO analyse(type, analyse_kind, decribe, prepare, indications, interpritation) values(?, ?, ?, ?, ?, ?);"
+            //sql_insert := "INSERT INTO analyse(type, subtype, analyse_kind) values(?, ?, ?);"
+            res, _ := db.Exec(sql_insert, type_id, a.Kind, a.DetailDesc, a.DetailPrep, a.DetailIndic, a.DetailInterp)
+            //res, _ := db.Exec(sql_insert, type_id, subtype_id, a.Kind)
+            _, err := res.LastInsertId()
+            if err != nil {
+                panic(err)
+            }
         }
 
+        // write to file for testing.
         //file.WriteString("--" + a.Type + "\n")
         //file.WriteString("----" + a.Subtype + "\n")
         //file.WriteString("------" + a.Kind + "\n")
@@ -325,13 +332,11 @@ func writeToDB(analyse_chan chan Analyse, quit chan int) {
         //file.WriteString("--------" + a.DetailIndic + "\n")
         //file.WriteString("--------" + a.DetailInterp + "\n")
     }
-    fmt.Println("DBDB")
-    quit <- 1
 }
 
 
 func getAnalyseDetailByURL(analyse Analyse, analyse_chan chan Analyse) {
-    defer wg.Done()
+    defer parser_wg.Done()
 
     // get analyse kind's detail information
     //
