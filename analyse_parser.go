@@ -53,7 +53,7 @@ func main() {
     }
 
     // html from saved file (for testing).
-    //html_utf8_rd, err := os.Open("test_base_page.html")
+    //html_utf8_rd, err := os.Open("test_html/test_base_page.html")
     //if err != nil {
     //    fmt.Println("Error open file:", err)
     //    return
@@ -359,7 +359,7 @@ func getAnalyseDetailByURL(analyse Analyse, analyse_chan chan Analyse) {
         return
     }
     // for testing get from file.
-    //details_html_rd, _ := os.Open("test_156_28932.html")
+    //details_html_rd, _ := os.Open("test_html/test_156_28932.html")
     //defer details_html_rd.Close()
 
     details_html_tree, _ :=	html.Parse(details_html_rd)
