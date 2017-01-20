@@ -14,11 +14,11 @@ import (
 func main() {
 
 	// app setup
-	// limit allowed URLScan goroutines
+	// limit URLScan goroutines
 	limit := 5
 	// limit chan
 	limitChan := make(chan bool, limit)
-	//
+	// wait all run scan goroutines
 	scanWG := &sync.WaitGroup{}
 
 	// read from stdin (pipe)
@@ -29,25 +29,27 @@ func main() {
 	// stdin slice to string
 	stdinString := strings.TrimSpace(string(stdin))
 
-	//
+	// scanning urls slice
 	urls := strings.Split(stdinString, "\n")
 
-	// result chan
+	// urls scan result chan
 	resChan := make(chan goinhtml.URLRes, len(urls))
 
 	// run Go scanning by url
 	for _, url := range urls {
+		// blocking if limit full
 		limitChan <- true
+		//
 		scanWG.Add(1)
 		go goinhtml.URLScan(url, resChan, limitChan, scanWG)
 	}
 
-	// wait scan
+	// waiting scaning goroutines
 	scanWG.Wait()
 
 	// Print result
 	result := ""
-	// All Go counts
+	// all Go counts
 	total := 0
 
 	close(resChan)
