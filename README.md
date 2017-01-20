@@ -18,3 +18,9 @@ URL должны обрабатываться параллельно, но не 
  не должно создаваться 1000 горутин.
 
 Нужно обойтись без глобальных переменных и использовать только стандартные библиотеки.
+
+#### my example
+echo -e 'https://en.wikipedia.org/wiki/Go_(programming_language)\nhttps://ru.wikipedia.org/wiki/Go\n' | go run gocnt.go
+Count for https://ru.wikipedia.org/wiki/Go: 636  
+Count for https://en.wikipedia.org/wiki/Go_(programming_language): 1080  
+Total: 1716  
