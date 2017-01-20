@@ -3,7 +3,6 @@ package goinhtml
 
 import (
 	"fmt"
-	"golang.org/x/net/html/charset"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -45,14 +44,8 @@ func getHTML(url string) (html string) {
 	}
 	defer resp.Body.Close()
 
-	// convert to UTF-8
-	htmlReader, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
-	if err != nil {
-		fmt.Println("resp body to utf-8 err", err)
-		return
-	}
-
-	htmlBytes, err := ioutil.ReadAll(htmlReader)
+	// read body bytes
+	htmlBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("html bytes read err", err)
 		return
