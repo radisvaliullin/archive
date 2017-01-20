@@ -14,7 +14,7 @@ import (
 func main() {
 
 	// app setup
-	// limit URLScan goroutines
+	// limit of URLScan goroutines
 	limit := 5
 	// limit chan
 	limitChan := make(chan bool, limit)
@@ -22,15 +22,15 @@ func main() {
 	scanWG := &sync.WaitGroup{}
 
 	// read from stdin (pipe)
-	stdin, err := ioutil.ReadAll(os.Stdin)
+	stdinBytes, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		fmt.Println("stdin read err", err)
 	}
-	// stdin slice to string
-	stdinString := strings.TrimSpace(string(stdin))
+	// stdin bytes to string
+	stdin := strings.TrimSpace(string(stdinBytes))
 
-	// scanning urls slice
-	urls := strings.Split(stdinString, "\n")
+	// to scan urls slice
+	urls := strings.Split(stdin, "\n")
 
 	// urls scan result chan
 	resChan := make(chan goinhtml.URLRes, len(urls))

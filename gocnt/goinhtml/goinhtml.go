@@ -23,7 +23,10 @@ func URLScan(url string, res chan URLRes, limit chan bool, wg *sync.WaitGroup) {
 	}()
 
 	//
-	html := getHTML(url)
+	html, err := getHTML(url)
+	if err != nil {
+		fmt.Println("URLScan: getHTML error", err)
+	}
 
 	// go counts in html
 	gocnt := strings.Count(html, "Go")
@@ -34,7 +37,7 @@ func URLScan(url string, res chan URLRes, limit chan bool, wg *sync.WaitGroup) {
 }
 
 // getHTML - return html by url
-func getHTML(url string) (html string) {
+func getHTML(url string) (html string, err error) {
 
 	// http request
 	resp, err := http.Get(url)
