@@ -11,6 +11,7 @@ from aparser import tree
 
 
 def coins_catalog_statistic():
+    """ Парсит информацию по каталогу монет """
 
     coins_unknown_year = 0
     coins_early_2000 = 0
@@ -23,6 +24,7 @@ def coins_catalog_statistic():
     coins_early_2000 += ce
     coins_later_2000 += cl
 
+    # Лимит на количество обрабатываемых страниц
     catalog_page_limit = 4
     page_cnt = 1
     while next_page:
@@ -43,7 +45,11 @@ def coins_catalog_statistic():
 
     return coins_unknown_year, coins_ratio
 
+
 class CatalogHTMLParser(HTMLParser):
+    """ 
+    Парсит страницу с каталогом монет. Возвращает информацию по годам и следующею страницу для парсинга. 
+    """
 
     domain = 'https://www.avito.ru'
     catalog_url = 'moskva/kollektsionirovanie/monety'
@@ -54,13 +60,13 @@ class CatalogHTMLParser(HTMLParser):
     coins_early_2000 = 0
     coins_later_2000 = 0
 
+    # Задаем структуру веток дерева каталога
     catalog_before_branch_struct = [
         {'tag': 'div', 'attrs': {'class': 'js-catalog_before-ads'}, },
     ]
     catalog_after_branch_struct = [
         {'tag': 'div', 'attrs': {'class': 'js-catalog_after-ads'}, },
     ]
-
     catalog_item_branch_struct = [
         # {'tag': 'div', 'attrs': {'class': 'item item_table clearfix js-catalog-item-enum item-highlight'}, },
         # {'tag': 'div', 'attrs': {}, },
@@ -69,14 +75,13 @@ class CatalogHTMLParser(HTMLParser):
         {'tag': 'a', 'attrs': {'class': 'item-description-title-link'}, },
     ]
 
+    # Структура веток дерева пагинации
     catalog_pages_branch_struct = [
         {'tag': 'div', 'attrs': {'class': 'pagination-pages clearfix'}, },
     ]
-
     catalog_curr_page_branch_struct = [
         {'tag': 'span', 'attrs': {'class': 'pagination-page pagination-page_current'}, },
     ]
-
     catalog_page_branch_struct = [
         {'tag': 'a', 'attrs': {'class': 'pagination-page'}, },
     ]
@@ -84,6 +89,7 @@ class CatalogHTMLParser(HTMLParser):
     def __init__(self, catalog_usl=''):
         super(CatalogHTMLParser, self).__init__()
 
+        # Инициализируем парсер веток
         self.catalog_before = tree.Branch(self.catalog_before_branch_struct)
         self.catalog_before_item = tree.Branch(self.catalog_item_branch_struct, self.catalog_before)
         self.catalog_after = tree.Branch(self.catalog_after_branch_struct)
@@ -97,7 +103,8 @@ class CatalogHTMLParser(HTMLParser):
 
     def parse_coins_years_info(self):
 
-        # Добавляем задержку что бы избежать подозрение на робата.
+        # Добавляем задержку что бы избежать подозрение на робата
+        # TODO: (не всегда срабатывает, нужна более лучшая стратегия).
         time.sleep(0.5 + random.random())
 
         # запрашиваем первую страницу
@@ -113,6 +120,7 @@ class CatalogHTMLParser(HTMLParser):
         # тестовый принт html
         # print(html)
 
+        # Запускаем разбор страницы
         self.feed(html)
 
         return self.coins_later_2000, self.coins_early_2000, self.coins_unknown_year, self.next_catalog_page_url
@@ -127,6 +135,7 @@ class CatalogHTMLParser(HTMLParser):
         self.catalog_curr_page.handle_starttag(tag, attrs)
         self.catalog_page.handle_starttag(tag, attrs)
 
+        # Если это элемент каталога то вычисляем url и парсим страницу элемента
         if self.catalog_before_item.is_branch: # or self.catalog_after_item.is_branch:
             for attr, attr_val in attrs:
                 if attr == 'href':
@@ -146,9 +155,11 @@ class CatalogHTMLParser(HTMLParser):
                     # for test
                     # print('Coins', self.coins_later_2000, self.coins_early_2000, self.coins_unknown_year)
 
+        # Если элемент пагинации текущая страница то выставляем тригер следующей страницы
         if self.catalog_curr_page.is_branch:
             self.next_page_trigger = True
 
+        # Определяем следующею страницу
         if self.catalog_page.is_branch and self.next_page_trigger:
             self.next_page_trigger = False
             for attr, attr_val in attrs:
@@ -170,6 +181,9 @@ class CatalogHTMLParser(HTMLParser):
 
 
 class CatalogItemParser(HTMLParser):
+    """
+    Парсер страницы для элемента каталога
+    """
 
     domain_url = 'https://www.avito.ru'
     catalog_item_url = ''
@@ -226,6 +240,7 @@ class CatalogItemParser(HTMLParser):
         # for test
         # print(self.item_title_and_description)
 
+        # Находим дату монеты в описании элемента католога монет
         self.find_coins_year()
 
         return self.coins_year
@@ -243,11 +258,14 @@ class CatalogItemParser(HTMLParser):
         self.item_description_branch.handle_endtag(tag)
 
     def handle_data(self, data):
+        # Если заголовок или описание то добавляем в общею переменную для последующего анализа по годам
         if self.item_title_branch.is_branch or self.item_description_branch.is_branch:
             self.item_title_and_description = ' '.join([self.item_title_and_description, data])
 
     def find_coins_year(self):
-
+        """
+        Простой поиск даты через регулярное выражение 
+        """
         date_exp = re.compile('(\d\d\d\d)')
         date_match = date_exp.search(self.item_title_and_description)
         if date_match:
