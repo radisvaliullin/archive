@@ -52,10 +52,10 @@ if __name__ == '__main__':
         session.add(o)
         session.commit()
 
-    os = session.query(Order).filter_by(state=0)
-    print("orders with hold state ", os.count())
+    oq = session.query(Order).filter_by(state=0)
+    print("orders with hold state ", oq.count())
 
     check_hold_orders_in_order_table()
 
-    os = session.query(Order).filter_by(state=0)[:1]
-    print("orders with hold state ", len(os))
+    oq = session.query(Order).filter_by(state=0)
+    print("orders with hold state ", oq.count())
