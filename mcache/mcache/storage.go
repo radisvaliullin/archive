@@ -154,5 +154,5 @@ func (s *StoreValue) GetMapValByKey(mapKey string) (mapVal string, ok bool, mok 
 		}
 		return mv, ok, mok
 	}
-	return nil, ok, mok
+	return "", ok, mok
 }

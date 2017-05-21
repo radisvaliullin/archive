@@ -9,20 +9,19 @@ import (
 //
 func main() {
 
-	s := mcache.NewStorage()
-	s.Set("q", []string{"qwerty"}, time.Second*1)
-	fmt.Printf("set - %+v\n", s)
+	fmt.Println("start mcache sever")
 
-	//s.Remove("q")
-	//fmt.Printf("remove - %+v\n", s)
+	mcs := mcache.NewMCacheServer(":7337")
+	mcs.Start()
+	mcsErrs := mcs.GetSerErrChan()
 
-	s.Set("q", []string{"2qwerty"}, time.Second*8)
-	fmt.Printf("set - %+v\n", s)
+	for {
+		select {
+		case err := <-mcsErrs:
+			fmt.Println("mcache server err - ", err)
+		case <-time.Tick(time.Second * 10):
+			fmt.Println("mcache server heartbeat")
 
-	time.Sleep(time.Second * 4)
-	fmt.Printf("2s %+v\n", s)
-
-	fmt.Println("keys", s.Keys())
-
-	fmt.Println("mcache")
+		}
+	}
 }
