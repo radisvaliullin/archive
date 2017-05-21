@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// StoreValue - keeps value, ttl.
 type StoreValue struct {
 	val interface {}
 
@@ -52,7 +53,7 @@ func (s *Storage) Set(k string, v interface{}, ttl time.Duration) {
 	}
 }
 
-//
+// Get - return *StoreValue.
 func (s *Storage) Get(k string) *StoreValue {
 	s.storeMux.Lock()
 	v, ok := s.store[k]
@@ -63,7 +64,7 @@ func (s *Storage) Get(k string) *StoreValue {
 	return v
 }
 
-//
+// Remove - delete value by key.
 func (s *Storage) Remove(k string) {
 	s.storeMux.Lock()
 	v, ok := s.store[k]
@@ -74,7 +75,7 @@ func (s *Storage) Remove(k string) {
 	s.storeMux.Unlock()
 }
 
-//
+// Keys - return store keys.
 func (s *Storage) Keys() []string {
 	keys := []string{}
 	s.storeMux.Lock()
