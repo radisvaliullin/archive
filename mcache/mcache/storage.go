@@ -33,6 +33,11 @@ func (s *Storage) Set(k string, v interface{}, ttl time.Duration) {
 	case string, []string, map[string]string:
 		s.storeMux.Lock()
 
+		v, ok := s.store[k]
+		if ok {
+			v.cancleTTLDelete <- struct{}{}
+		}
+
 		ch := make(chan struct{}, 1)
 		s.store[k] = &StoreValue{
 			val: v,
