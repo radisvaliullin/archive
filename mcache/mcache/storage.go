@@ -1,11 +1,12 @@
 package mcache
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
 
-// StoreValue - keeps value, ttl.
+// StoreValue - keeps value, ttl. Support methods to get value.
 type StoreValue struct {
 	val interface{}
 
@@ -99,4 +100,59 @@ func (s *Storage) ttlDelete(k string, ttl time.Duration, cl chan struct{}) {
 		delete(s.store, k)
 		s.storeMux.Unlock()
 	}
+}
+
+// GetString - return string type from StoreValue. ok - store value is correct type.
+func (s *StoreValue) GetString() (str string, ok bool) {
+	switch s.val.(type) {
+	case string:
+		str = s.val.(string)
+		return str, true
+	}
+	return "", false
+}
+
+// GetSlice - return string slice from StoreValue.
+func (s *StoreValue) GetSlice() (sl []string, ok bool) {
+	switch s.val.(type) {
+	case []string:
+		sl = s.val.([]string)
+		return sl, true
+	}
+	return nil, false
+}
+
+// GetSliceItem - return item from []string by index
+func (s *StoreValue) GetSliceItem(idx int) (str string, ok bool, err error) {
+	sl, ok := s.GetSlice()
+	if ok {
+		if idx < 0 || idx >= len(sl) {
+			return "", ok, fmt.Errorf("index out of range of slice")
+		}
+		return sl[idx], ok, nil
+	}
+	return "", ok, nil
+}
+
+// GetMap - return map[string]string from StoreValue.
+func (s *StoreValue) GetMap() (m map[string]string, ok bool) {
+	switch s.val.(type) {
+	case map[string]string:
+		m = s.val.(map[string]string)
+		return m, true
+	}
+	return nil, false
+}
+
+// GetMapValByKey - return map[string]string value from StoreValue. ok - storevalue is map, mok - map has value for key.
+func (s *StoreValue) GetMapValByKey(mapKey string) (mapVal string, ok bool, mok bool) {
+	m, ok := s.GetMap()
+	if ok {
+		mv, mok := m[mapKey]
+		if mok {
+			return mv, ok, mok
+		}
+		return mv, ok, mok
+	}
+	return nil, ok, mok
 }
