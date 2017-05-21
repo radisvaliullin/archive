@@ -7,7 +7,7 @@ import (
 
 // StoreValue - keeps value, ttl.
 type StoreValue struct {
-	val interface {}
+	val interface{}
 
 	// cancel ttlDelete if key reset
 	cancleTTLDelete chan struct{}
@@ -16,7 +16,7 @@ type StoreValue struct {
 // Storage - implements memory key value storage.
 type Storage struct {
 	storeMux sync.Mutex
-	store map[string]*StoreValue
+	store    map[string]*StoreValue
 }
 
 // NewStorage - returns new storage object.
@@ -41,7 +41,7 @@ func (s *Storage) Set(k string, v interface{}, ttl time.Duration) {
 
 		ch := make(chan struct{}, 1)
 		s.store[k] = &StoreValue{
-			val: v,
+			val:             v,
 			cancleTTLDelete: ch,
 		}
 		go s.ttlDelete(k, ttl, ch)
@@ -93,7 +93,7 @@ func (s *Storage) ttlDelete(k string, ttl time.Duration, cl chan struct{}) {
 
 	//
 	select {
-	case <- cl:
+	case <-cl:
 	default:
 		s.storeMux.Lock()
 		delete(s.store, k)
