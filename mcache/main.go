@@ -11,7 +11,7 @@ func main() {
 
 	fmt.Println("start mcache sever")
 
-	mcs := mcache.NewMCacheServer(":7337")
+	mcs := mcache.NewMCacheServer("0.0.0.0:7337")
 	mcs.Start()
 	mcsErrs := mcs.GetSerErrChan()
 

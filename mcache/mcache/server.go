@@ -1,6 +1,10 @@
 package mcache
 
-import "net/http"
+import (
+	"fmt"
+	"io/ioutil"
+	"net/http"
+)
 
 // Server - implements memory cache server with REST Api for clients
 type Server struct {
@@ -23,14 +27,14 @@ func NewMCacheServer(addr string) *Server {
 // Start - start server
 func (s *Server) Start() {
 
-	http.HandleFunc("/set", s.setHandler)
+	http.HandleFunc("/cmd", s.commandHandler)
 
 	go s.run()
 }
 
 //
 func (s *Server) run() {
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(s.srvAddr, nil); err != nil {
 		s.srvErr <- err
 	}
 }
@@ -41,6 +45,12 @@ func (s *Server) GetSerErrChan() <-chan error {
 }
 
 //
-func (s *Server) setHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) commandHandler(w http.ResponseWriter, r *http.Request) {
 
+	json, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Println("setHandler read boby err ", err)
+		return
+	}
+	fmt.Println(string(json))
 }
