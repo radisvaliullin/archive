@@ -19,7 +19,7 @@ func main() {
 		select {
 		case err := <-mcsErrs:
 			fmt.Println("mcache server err - ", err)
-		case <-time.Tick(time.Second * 1000):
+		case <-time.Tick(time.Second * 15):
 			fmt.Println("mcache server heartbeat")
 
 		}

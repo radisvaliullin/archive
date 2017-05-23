@@ -57,8 +57,6 @@ func (s *Server) commandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(string(jsonCmd))
-
 	cmd := &Command{}
 	err = json.Unmarshal(jsonCmd, cmd)
 	if err != nil {
@@ -86,7 +84,6 @@ func (s *Server) commandExecut(cmd *Command) *ReqResp {
 	case "set":
 		switch *cmd.Type {
 		case "str":
-			fmt.Printf("SET STR - %+v\n", cmd)
 			err := s.store.Set(*cmd.Key, *cmd.Str, time.Second*time.Duration(*cmd.TTL))
 			if err != nil {
 				return &ReqResp{Success: false, Error: PStr(err.Error())}
@@ -119,7 +116,6 @@ func (s *Server) commandExecut(cmd *Command) *ReqResp {
 
 		// string
 		str, ok := sv.GetString()
-		fmt.Printf("GET STR %v %v %v %+v\n", str, ok, cmd.Key, cmd)
 		if ok {
 			return &ReqResp{Success: true, Result: PStr(str)}
 		}
