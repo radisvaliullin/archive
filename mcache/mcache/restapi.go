@@ -2,7 +2,9 @@ package mcache
 
 // ReqResp - response of request
 type ReqResp struct {
-	Success bool `json:"success"`
+	Success bool    `json:"success"`
+	Error   *string `json:"error,omitempty"`
+	Result  *string `json:"result,omitempty"`
 }
 
 // Command -

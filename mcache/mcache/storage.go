@@ -29,15 +29,14 @@ func NewStorage() *Storage {
 }
 
 // Set - set value.
-func (s *Storage) Set(k string, v interface{}, ttl time.Duration) {
-
+func (s *Storage) Set(k string, v interface{}, ttl time.Duration) error {
 	switch v.(type) {
 	case string, []string, map[string]string:
 		s.storeMux.Lock()
 
-		v, ok := s.store[k]
+		vOld, ok := s.store[k]
 		if ok {
-			v.cancleTTLDelete <- struct{}{}
+			vOld.cancleTTLDelete <- struct{}{}
 		}
 
 		ch := make(chan struct{}, 1)
@@ -50,8 +49,9 @@ func (s *Storage) Set(k string, v interface{}, ttl time.Duration) {
 		s.storeMux.Unlock()
 
 	default:
-		panic("you can set only values with type - string, []string, map[string]string")
+		return fmt.Errorf("you can set only values with type - string, []string, map[string]string")
 	}
+	return nil
 }
 
 // Get - return *StoreValue.

@@ -46,14 +46,14 @@ func parseCommand(cstr string) (*mcache.Command, error) {
 			if len(cattrs) < 5 {
 				return nil, fmt.Errorf("set string have not value argument")
 			}
-			c.Str = mcache.PStr(cattrs[3])
+			c.Str = mcache.PStr(cattrs[4])
 
 		case "slice":
 			if len(cattrs) < 5 {
 				return nil, fmt.Errorf("set slice have not value arguments")
 			}
 			sl := []string{}
-			for _, v := range cattrs[3:] {
+			for _, v := range cattrs[4:] {
 				sl = append(sl, v)
 			}
 			c.Slice = sl
@@ -62,7 +62,7 @@ func parseCommand(cstr string) (*mcache.Command, error) {
 				return nil, fmt.Errorf("set map must have minimum one key val of map")
 			}
 			m := map[string]string{}
-			for i := 3; i < len(cattrs); i += 2 {
+			for i := 4; i < len(cattrs); i += 2 {
 				if i+1 >= len(cattrs) {
 					break
 				}

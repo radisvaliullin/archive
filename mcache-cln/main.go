@@ -33,6 +33,6 @@ func main() {
 			fmt.Println("command send to server err ", err)
 			continue
 		}
-		fmt.Println(string(res))
+		fmt.Printf("%+v\n", res)
 	}
 }
