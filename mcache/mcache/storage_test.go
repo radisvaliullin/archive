@@ -3,30 +3,63 @@ package mcache
 import (
 	"testing"
 	"time"
+	"reflect"
 )
 
 func TestSetString(t *testing.T) {
 
 	store := NewStorage()
 
-	str := "TEST73"
-	err := store.Set("key", str, time.Second*3600)
+	setStr := "TEST STRING"
+
+	err := store.Set("test", setStr, time.Second*3600)
 	if err != nil {
-		t.Fatal("Set err")
+		t.Fatal("set err")
 	}
-	t.Logf("STORE %+v", store)
 
-	sv := store.Get("key")
+	sv := store.Get("test")
 	if sv == nil {
-		t.Fatal("get empty")
+		t.Fatal("get store value, empty")
 	}
-	t.Logf("STORE VAL %+v", sv)
 
-	str, ok := sv.GetString()
+	getStr, ok := sv.GetString()
 	if !ok {
-		t.Logf("STORE %+v", store)
-		t.Fatal("sv is not string")
+		t.Fatal("store value is not string")
 	}
-	t.Log("str var ", str)
 
+	if setStr == getStr {
+		t.Log("setStr equal getStr")
+	} else {
+		t.Fatal("setStr not equal getStr")
+	}
+}
+
+//
+func TestSetMap(t *testing.T) {
+
+	store := NewStorage()
+
+	setMap := map[string]string{"test":"TEST STRING"}
+
+	err := store.Set("test", setMap, time.Second*3600)
+	if err != nil {
+		t.Fatal("set err")
+	}
+
+	sv := store.Get("test")
+	if sv == nil {
+		t.Fatal("get store value, empty")
+	}
+
+	getMap, ok := sv.GetMap()
+	if !ok {
+		t.Fatal("store value is not map")
+	}
+
+	eq := reflect.DeepEqual(setMap, getMap)
+	if eq {
+		t.Log("setMap equal getMap")
+	} else {
+		t.Fatal("setMap not equal getMap")
+	}
 }
