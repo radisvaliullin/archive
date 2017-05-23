@@ -17,7 +17,8 @@ func sendCommand(cmd *mcache.Command) (*mcache.ReqResp, error) {
 		return nil, fmt.Errorf("command to jsom marshal err %v", err)
 	}
 
-	res, err := http.Post("http://0.0.0.0:7337/cmd", "application/json", body)
+	_url := fmt.Sprintf("http://%v/cmd", srvAddr)
+	res, err := http.Post(_url, "application/json", body)
 	if err != nil {
 		return nil, fmt.Errorf("send post err %v", err)
 	}

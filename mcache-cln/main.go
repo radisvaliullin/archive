@@ -6,6 +6,10 @@ import (
 	"os"
 )
 
+var (
+	srvAddr = "0.0.0.0:7337"
+)
+
 //
 func main() {
 

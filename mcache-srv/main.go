@@ -6,12 +6,16 @@ import (
 	"time"
 )
 
+var (
+	srvAddr = "0.0.0.0:7337"
+)
+
 //
 func main() {
 
 	fmt.Println("start mcache-srv sever")
 
-	mcs := mcache.NewMCacheServer("0.0.0.0:7337")
+	mcs := mcache.NewMCacheServer(srvAddr)
 	mcs.Start()
 	mcsErrs := mcs.GetSerErrChan()
 
