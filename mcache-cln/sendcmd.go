@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"test_task_11/mcache/mcache"
+	"test_task_11/mcache-srv/mcache"
 )
 
 //

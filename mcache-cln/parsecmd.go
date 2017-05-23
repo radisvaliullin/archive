@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"test_task_11/mcache/mcache"
+	"test_task_11/mcache-srv/mcache"
 )
 
 //
