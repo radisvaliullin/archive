@@ -33,6 +33,16 @@ func main() {
 			fmt.Println("command send to server err ", err)
 			continue
 		}
-		fmt.Printf("%+v\n", res)
+		if res.Success {
+			if res.Result != nil {
+				fmt.Println(*res.Result)
+			} else {
+				fmt.Println("")
+			}
+		} else {
+			if res.Error != nil {
+				fmt.Println(*res.Error)
+			}
+		}
 	}
 }

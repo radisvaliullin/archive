@@ -134,7 +134,7 @@ func (s *Server) commandExecut(cmd *Command) *ReqResp {
 				}
 				item, _, err := sv.GetSliceItem(idx)
 				if err != nil {
-					return &ReqResp{Success: false, Error: PStr("get slice by index, index must be number")}
+					return &ReqResp{Success: false, Error: PStr("get slice by index, err " + err.Error())}
 				}
 				return &ReqResp{Success: true, Result: PStr(item)}
 			}

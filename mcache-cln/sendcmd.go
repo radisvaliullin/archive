@@ -28,7 +28,6 @@ func sendCommand(cmd *mcache.Command) (*mcache.ReqResp, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read response body err %v", err)
 	}
-	fmt.Println(string(resJSON))
 
 	rr := &mcache.ReqResp{}
 	err = json.Unmarshal(resJSON, rr)
