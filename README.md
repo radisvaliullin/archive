@@ -1,6 +1,30 @@
 # test_task_11
 Some test task on Golang.
 
+## Run Server
+```
+cd mcache-srv
+go build
+./mcache-srv
+
+```
+
+## Run Client
+```
+cd mcache-cln
+go build
+./mcache-cln
+```
+
+## Test
+```
+go test -v ./...
+
+```
+
+## Get Started
+Look GETSTARTED.md
+
 #### Description
 Простая имплементация похожего на Redis кеша в памяти
 
