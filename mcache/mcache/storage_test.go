@@ -1,9 +1,9 @@
 package mcache
 
 import (
+	"reflect"
 	"testing"
 	"time"
-	"reflect"
 )
 
 func TestSetString(t *testing.T) {
@@ -39,7 +39,7 @@ func TestSetMap(t *testing.T) {
 
 	store := NewStorage()
 
-	setMap := map[string]string{"test":"TEST STRING"}
+	setMap := map[string]string{"test": "TEST STRING"}
 
 	err := store.Set("test", setMap, time.Second*3600)
 	if err != nil {
