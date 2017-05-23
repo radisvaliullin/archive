@@ -57,6 +57,8 @@ func (s *Server) commandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println(string(jsonCmd))
+
 	cmd := &Command{}
 	err = json.Unmarshal(jsonCmd, cmd)
 	if err != nil {

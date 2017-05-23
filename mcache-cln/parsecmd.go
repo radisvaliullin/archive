@@ -68,6 +68,7 @@ func parseCommand(cstr string) (*mcache.Command, error) {
 				}
 				m[cattrs[i]] = cattrs[i+1]
 			}
+			c.Map = m
 
 		default:
 			return nil, fmt.Errorf("set unknown type")
