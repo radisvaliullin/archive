@@ -32,6 +32,7 @@ def make_shserver_request_handler_class(host, port, store):
 
         def do_GET(self):
 
+            # main page
             if self.path == '/':
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
@@ -44,23 +45,41 @@ def make_shserver_request_handler_class(host, port, store):
 
             else:
 
+                # redirect by short link
                 if "?" not in self.path and len(self.path.split("/")) == 2:
                     hash = self.path.split("/")[1]
-                    original_url = self._hash_url_store[hash]
-                    if not original_url.startswith("http"):
-                        original_url = "http://" + original_url
+
+                    redirect_url = ""
+
+                    # if short link exist in store
+                    if hash in self._hash_url_store:
+                        original_url = self._hash_url_store[hash]
+                        if not original_url.startswith("http"):
+                            original_url = "http://" + original_url
+                        redirect_url = original_url
+                    else:
+                        redirect_url = "http://" + self._host + ":" + str(self._port)
 
                     self.send_response(200)
                     self.send_header('Content-type', 'text/html')
                     self.end_headers()
 
                     # Send the html message
-                    message = self.get_redirect_html_template().format(original_url)
+                    message = self.get_redirect_html_template().format(redirect_url)
                     self.wfile.write(bytes(message, "utf8"))
                     return
 
+                # wrong link, return main page
                 else:
-                    pass
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/html')
+                    self.end_headers()
+
+                    # Send the html message
+                    _url = "http://" + self._host + ":" + str(self._port)
+                    message = self.get_redirect_html_template().format(_url)
+                    self.wfile.write(bytes(message, "utf8"))
+                    return
 
         def do_POST(self):
 
