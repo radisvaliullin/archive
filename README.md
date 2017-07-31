@@ -1,6 +1,14 @@
 # test_task_13
 Some test task on Python
 
+## Requirements
+python3.4.x or later
+BeautifulSoup4
+lxml
+
+## Run
+python3 delstyle.py test.address
+
 ## Task Description
 Имеется ссылка на HTML страницу,
 Нужно написать приложение на Python, которое получает в качестве параметра
