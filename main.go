@@ -1,6 +1,6 @@
 package main
 
-import "redis-cli/genhandcli"
+import "test_task_14/genhandcli"
 import "log"
 import "flag"
 

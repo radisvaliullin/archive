@@ -128,7 +128,7 @@ func (c *Client) run() {
 			log.Print("lock renew: could not renew lock")
 			return
 		}
-		log.Println("lock isrenewed")
+		//log.Println("lock isrenewed")
 	}
 }
 
