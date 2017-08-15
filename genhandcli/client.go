@@ -54,6 +54,7 @@ func (c *Client) Start() error {
 	}
 	c.rcln = redis.NewClient(opt)
 
+	// test ping
 	pong, err := c.rcln.Ping().Result()
 	if err != nil {
 		log.Print("redis ping err ", err)
@@ -84,7 +85,7 @@ func (c *Client) run() {
 
 	// try lock
 	for {
-		// lock redis
+		// lock redis, default lock ttl 5 sec.
 		lck, err = lock.ObtainLock(c.rcln, "mylockkey", nil)
 		if err != nil {
 			log.Print("try lock err: ", err)
@@ -98,6 +99,7 @@ func (c *Client) run() {
 				c.startMsgHandler()
 			}
 
+			// next lock attempt 5 sec.
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -117,6 +119,7 @@ func (c *Client) run() {
 	// start generator
 	c.startGenerator()
 	for {
+		// lock renew after half life lock ttl 5sec/2
 		time.Sleep(time.Second * 2)
 
 		// Renew your lock
