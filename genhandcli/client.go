@@ -210,11 +210,19 @@ func (c *Client) isMsgValid(msg string) bool {
 // getAllErrMsg - read all error messages
 func (c *Client) getAllErrMsg() {
 
-	//
-	msgres, err := c.rcln.LRange(c.errMsgKey, 0, -1).Result()
+	// read all error messages and after delete
+	pipe := c.rcln.Pipeline()
+	lrange := pipe.LRange(c.errMsgKey, 0, -1)
+	pipe.Del(c.errMsgKey)
+	_, err := pipe.Exec()
 	if err != nil {
-		log.Print("getAllErrMsg: lrange err ", err)
+		log.Print("getAllErrMsg: pipline lrange, del err ", err)
+	}
+	// get result
+	r, err := lrange.Result()
+	if err != nil {
+		log.Print("getAllErrMsg: lrange result, err ", err)
 		return
 	}
-	log.Print("all error messages - ", msgres)
+	log.Print("all error messages - ", r)
 }
