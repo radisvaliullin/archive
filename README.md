@@ -1,6 +1,13 @@
 # test_task_14
 Some test task on Golang.
 
+## Run
+```
+go run main.go
+or
+go run main.go -getErrors
+```
+
 ## Description
 Задача написать приложение, работающее с redis, умеющее как генерировать сообщения, так и обрабатывать. Параллельно может быть запущено сколько угодно приложений.
 
