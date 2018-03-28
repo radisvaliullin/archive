@@ -1,0 +1,23 @@
+[
+    {
+        "Name": "russia",
+	    "Address": "localhost:3306",
+	    "User":     "root",
+	    "Password": "password",
+	    "DBName": "country"
+    },
+    {
+        "Name": "usa",
+	    "Address": "localhost:3306",
+	    "User":     "root",
+	    "Password": "password",
+	    "DBName": "country"
+    },
+    {
+        "Name": "japan",
+	    "Address": "localhost:3306",
+	    "User":     "root",
+	    "Password": "password",
+	    "DBName": "country"
+    }
+]

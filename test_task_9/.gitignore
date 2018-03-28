@@ -1,0 +1,9 @@
+# bin
+dump/dump
+
+# dump result files
+dump/archive/
+dump/dbdump/archive/
+
+# conf.json
+dump/conf.json
