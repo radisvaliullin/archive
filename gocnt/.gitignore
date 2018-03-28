@@ -1,0 +1,4 @@
+# gocnt .gitignore
+
+# app bin
+gocnt
