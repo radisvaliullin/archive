@@ -3,11 +3,13 @@ package loaner
 import (
 	"log"
 	"sort"
+	"math"
 )
 
 // Config loaner configs
 type Config struct {
 	InPath string
+	OutPath string
 }
 
 // Loaner loans by input date
@@ -73,6 +75,7 @@ func (l *Loaner) Loan() error {
 		return err
 	}
 
+	// handle loans
 	assigns := Assignments{}
 	facilYield := FacilYieldMap{}
 	// yields := Yields{}
@@ -111,7 +114,28 @@ func (l *Loaner) Loan() error {
 			}
 		}
 	}
-	log.Printf("assignements %+v", assigns)
-	log.Printf("facil yilds %+v", facilYield)
+	// log.Printf("assignements %+v", assigns)
+	// log.Printf("facil yilds %+v", facilYield)
+
+	// write result
+	err = objsToCSV(l.conf.OutPath+"/assignments.csv", &assigns)
+	if err != nil {
+		log.Print("assigs to csv parse err: ", err)
+		return err
+	}
+	yields := Yields{}
+	for fid, y := range facilYield {
+		yield := Yield{
+			FacilityID: fid,
+			ExpectedYield: int(math.Round(y)),
+		}
+		yields = append(yields, yield)
+	}
+	err = objsToCSV(l.conf.OutPath+"/yields.csv", &yields)
+	if err != nil {
+		log.Print("yields to csv parse err: ", err)
+		return err
+	}
+
 	return nil
 }

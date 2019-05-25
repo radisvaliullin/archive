@@ -8,7 +8,8 @@ import (
 func main() {
 
 	c := loaner.Config{
-		InPath: "./task_desc/small",
+		InPath: "./task_desc/large",
+		OutPath: "./out",
 	}
 	l := loaner.New(c)
 	err := l.Loan()
