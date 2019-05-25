@@ -2,13 +2,13 @@ package loaner
 
 import (
 	"log"
-	"sort"
 	"math"
+	"sort"
 )
 
 // Config loaner configs
 type Config struct {
-	InPath string
+	InPath  string
 	OutPath string
 }
 
@@ -28,7 +28,10 @@ func New(conf Config) *Loaner {
 // Loan make loan from stream input
 func (l *Loaner) Loan() error {
 
+	// Parse input data
 	// fill models from csv
+
+	// banks
 	banks := Banks{}
 	err := csvToObjs(l.conf.InPath+"/banks.csv", &banks)
 	if err != nil {
@@ -36,38 +39,71 @@ func (l *Loaner) Loan() error {
 		return err
 	}
 
+	// facils
 	facils := Facilities{}
 	err = csvToObjs(l.conf.InPath+"/facilities.csv", &facils)
 	if err != nil {
 		log.Print("facilities csv parse to obj err: ", err)
 		return err
 	}
+	// set actual facility capacity
 	facilCap := FacilCapMap{}
 	for _, f := range facils {
-		facilCap[f.ID]=f.Amount
+		facilCap[f.ID] = f.Amount
 	}
+	// sort facils
 	sort.Sort(facils)
-	
+
+	// covens
 	covens := Covenants{}
 	err = csvToObjs(l.conf.InPath+"/covenants.csv", &covens)
 	if err != nil {
 		log.Print("covenants csv parse to obj err: ", err)
 		return err
 	}
-	facilsConvensMap := FacilsCovensMap{}
+	// covens by facils/banks maps
+	facilsCovensMap := FacilsCovensMap{}
+	banksCovensMap := BanksCovensMap{}
 	for _, c := range covens {
-		fc := FacilCoven{
-			BankID:               c.BankID,
-			MaxDefaultLikelihood: c.MaxDefaultLikelihood,
-			BannedState:          c.BannedState,
-		}
-		if _, ok := facilsConvensMap[c.FacilityID]; ok {
-			facilsConvensMap[c.FacilityID] = append(facilsConvensMap[c.FacilityID], fc)
+		if c.FacilityID != 0 {
+			if fc, ok := facilsCovensMap[c.FacilityID]; ok {
+				if c.MaxDefaultLikelihood != 0 {
+					fc.MaxDefaultLikelihood = c.MaxDefaultLikelihood
+				}
+				if c.BannedState != "" {
+					fc.BannedState[c.BannedState] = struct{}{}
+				}
+			} else {
+				nfc := FacilCovens{
+					BankID:               c.BankID,
+					MaxDefaultLikelihood: c.MaxDefaultLikelihood,
+					BannedState:          map[string]struct{}{c.BannedState:struct{}{}},
+				}
+				facilsCovensMap[c.FacilityID] =&nfc
+			}
 		} else {
-			facilsConvensMap[c.FacilityID] = []FacilCoven{fc}
+			if bc, ok := banksCovensMap[c.BankID]; ok {
+				if c.MaxDefaultLikelihood != 0 {
+					bc.MaxDefaultLikelihood = c.MaxDefaultLikelihood
+				}
+				if c.BannedState != "" {
+					bc.BannedState[c.BannedState] = struct{}{}
+				}
+			} else {
+				nbc := BankCovens{
+					MaxDefaultLikelihood: c.MaxDefaultLikelihood,
+					BannedState:          map[string]struct{}{c.BannedState:struct{}{}},
+				}
+				banksCovensMap[c.FacilityID] =&nbc
+			}
 		}
 	}
+	log.Printf("%+v", facilsCovensMap)
+	log.Printf("%+v", facilsCovensMap[1])
+	log.Printf("%+v", facilsCovensMap[2])
+	log.Printf("%+v", banksCovensMap)
 
+	// input loans
 	loans := Loans{}
 	err = csvToObjs(l.conf.InPath+"/loans.csv", &loans)
 	if err != nil {
@@ -78,39 +114,44 @@ func (l *Loaner) Loan() error {
 	// handle loans
 	assigns := Assignments{}
 	facilYield := FacilYieldMap{}
-	// yields := Yields{}
 	for _, l := range loans {
 
+		// if loaned go to next loan
 		loaned := false
+
+		// find best facils
 		for _, f := range facils {
 			if loaned {
 				break
 			}
-			// TODO: need fix
+			// loan can't spend more then capacity of facility
 			if float64(l.Amount) > facilCap[f.ID] {
 				continue
 			}
 
-			cs, ok := facilsConvensMap[f.ID]
+			// validate by covens of facility or bank
+			fcs, ok := facilsCovensMap[f.ID]
 			if ok {
-
-				for _, c := range cs {
-					if l.State != c.BannedState &&
-						c.MaxDefaultLikelihood != 0 &&
-						l.DefaultLikelihood <= c.MaxDefaultLikelihood {
-
-						y := (1.0-l.DefaultLikelihood)*l.InterestRate*float64(l.Amount) - l.DefaultLikelihood*float64(l.Amount) - f.InterestRate*float64(l.Amount)
-						if y < 0.0 {
-							continue
-						}
-						assign := Assignment{FacilityID: f.ID, LoanID: l.ID}
-						assigns = append(assigns, assign)
-						loaned = true
-						facilCap[f.ID]= facilCap[f.ID]-float64(l.Amount)
-						facilYield[f.ID]=facilYield[f.ID]+y
-						break
+					// if banned state
+					if _, ok := fcs.BannedState[l.State]; ok {
+						continue
 					}
-				}
+					// if out of likelihood max limit
+					if fcs.MaxDefaultLikelihood != 0.0 &&
+						l.DefaultLikelihood > fcs.MaxDefaultLikelihood {
+						continue
+					}
+
+					y := (1.0-l.DefaultLikelihood)*l.InterestRate*float64(l.Amount) - l.DefaultLikelihood*float64(l.Amount) - f.InterestRate*float64(l.Amount)
+					if y < 0.0 {
+						continue
+					}
+					assign := Assignment{FacilityID: f.ID, LoanID: l.ID}
+					assigns = append(assigns, assign)
+					loaned = true
+					facilCap[f.ID] = facilCap[f.ID] - float64(l.Amount)
+					facilYield[f.ID] = facilYield[f.ID] + y
+					break
 			}
 		}
 	}
@@ -126,7 +167,7 @@ func (l *Loaner) Loan() error {
 	yields := Yields{}
 	for fid, y := range facilYield {
 		yield := Yield{
-			FacilityID: fid,
+			FacilityID:    fid,
 			ExpectedYield: int(math.Round(y)),
 		}
 		yields = append(yields, yield)

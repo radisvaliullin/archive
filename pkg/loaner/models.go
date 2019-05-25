@@ -57,13 +57,22 @@ type Covenant struct {
 }
 
 // FacilsCovensMap facilities covenants map
-type FacilsCovensMap map[int][]FacilCoven
+type FacilsCovensMap map[int]*FacilCovens
 
-// FacilCoven model
-type FacilCoven struct {
-	BankID  int
+// BanksCovensMap banks covenant map
+type BanksCovensMap map[int]*BankCovens
+
+// FacilCovens model
+type FacilCovens struct {
+	BankID               int
 	MaxDefaultLikelihood float64
-	BannedState string
+	BannedState          map[string]struct{}
+}
+
+// BankCovens model
+type BankCovens struct {
+	MaxDefaultLikelihood float64
+	BannedState          map[string]struct{}
 }
 
 // Loans list of loans
@@ -83,7 +92,7 @@ type Assignments []Assignment
 
 // Assignment model
 type Assignment struct {
-	LoanID int `csv:"loan_id"`
+	LoanID     int `csv:"loan_id"`
 	FacilityID int `csv:"facility_id"`
 }
 
@@ -92,6 +101,6 @@ type Yields []Yield
 
 // Yield model
 type Yield struct {
-	FacilityID int `csv:"facility_id"`
+	FacilityID    int `csv:"facility_id"`
 	ExpectedYield int `csv:"expected_yield"`
 }
