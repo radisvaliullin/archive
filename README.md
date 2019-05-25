@@ -11,8 +11,14 @@ Run:
 go run cmd/loaner/*.go
 ```
 
-See result:
+See result (after run):
 ```
 out/assignments.csv
 out/yields.csv
+```
+
+See My Result:
+```
+my_out/assignments.csv
+my_out/yields.csv
 ```
