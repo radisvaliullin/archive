@@ -28,15 +28,64 @@ func New(conf Config) *Loaner {
 // Loan make loan from stream input
 func (l *Loaner) Loan() error {
 
-	// Parse input data
-	// fill models from csv
+	// Parse input data from csv
+	inputs, err := l.parseInputCSV()
+	if err != nil {
+		log.Print("loaner: parse input csv err: ", err)
+		return err
+	}
+
+	// handle loans
+	assigns := Assignments{}
+	facilYield := FacilYieldMap{}
+	for _, loan := range inputs.Loans {
+
+		// find best facils (facils sorted by rate)
+		for _, f := range inputs.Facils {
+
+			// validate facility
+			if ok := l.validateFacility(loan, f, inputs); !ok {
+				continue
+			}
+
+			// calc yield
+			y := l.calcYield(loan, f)
+
+			// validate by yield
+			if y < 0.0 {
+				continue
+			}
+
+			// set assignment
+			assign := Assignment{FacilityID: f.ID, LoanID: loan.ID}
+			assigns = append(assigns, assign)
+
+			// recalc facility capacity
+			inputs.FacilCap[f.ID] = inputs.FacilCap[f.ID] - float64(loan.Amount)
+			// add facility yield
+			facilYield[f.ID] = facilYield[f.ID] + y
+			break
+		}
+	}
+
+	// write result
+	err = l.writeResult(assigns, facilYield)
+	if err != nil {
+		log.Print("loaner: write result csv err: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func (l *Loaner) parseInputCSV() (*Inputs, error) {
 
 	// banks
 	banks := Banks{}
 	err := csvToObjs(l.conf.InPath+"/banks.csv", &banks)
 	if err != nil {
 		log.Print("banks csv parse to obj err: ", err)
-		return err
+		return nil, err
 	}
 
 	// facils
@@ -44,14 +93,14 @@ func (l *Loaner) Loan() error {
 	err = csvToObjs(l.conf.InPath+"/facilities.csv", &facils)
 	if err != nil {
 		log.Print("facilities csv parse to obj err: ", err)
-		return err
+		return nil, err
 	}
 	// facility actual capacity map
 	facilCap := FacilCapMap{}
 	for _, f := range facils {
 		facilCap[f.ID] = f.Amount
 	}
-	// sort facils
+	// sort facils by rate
 	sort.Sort(facils)
 
 	// covens
@@ -59,7 +108,7 @@ func (l *Loaner) Loan() error {
 	err = csvToObjs(l.conf.InPath+"/covenants.csv", &covens)
 	if err != nil {
 		log.Print("covenants csv parse to obj err: ", err)
-		return err
+		return nil, err
 	}
 	// covens by facils/banks maps
 	facilsCovensMap := FacilsCovensMap{}
@@ -104,70 +153,63 @@ func (l *Loaner) Loan() error {
 	err = csvToObjs(l.conf.InPath+"/loans.csv", &loans)
 	if err != nil {
 		log.Print("loans csv parse to obj err: ", err)
-		return err
+		return nil, err
 	}
 
-	// handle loans
-	assigns := Assignments{}
-	facilYield := FacilYieldMap{}
-	for _, l := range loans {
+	in := &Inputs{
+		Facils:          facils,
+		FacilCap:        facilCap,
+		FacilsCovensMap: facilsCovensMap,
+		BanksCovensMap:  banksCovensMap,
+		Loans:           loans,
+	}
+	return in, nil
+}
 
-		// if loaned go to next loan
-		loaned := false
+func (l *Loaner) validateFacility(loan Loan, f Facility, in *Inputs) bool {
 
-		// find best facils
-		for _, f := range facils {
-			if loaned {
-				break
-			}
-			// loan can't spend more then capacity of facility
-			if float64(l.Amount) > facilCap[f.ID] {
-				continue
-			}
+	// loan can't spend more then capacity of facility
+	if float64(loan.Amount) > in.FacilCap[f.ID] {
+		return false
+	}
 
-			// validate by covens of facility or bank
-			fcs, ok := facilsCovensMap[f.ID]
-			if ok {
-				// if banned state
-				if _, ok := fcs.BannedState[l.State]; ok {
-					continue
-				}
-				// if out of likelihood max limit
-				if fcs.MaxDefaultLikelihood != 0.0 &&
-					l.DefaultLikelihood > fcs.MaxDefaultLikelihood {
-					continue
-				}
-			}
-			bcs, ok := banksCovensMap[f.BankID]
-			if ok {
-				// if banned state
-				if _, ok := bcs.BannedState[l.State]; ok {
-					continue
-				}
-				// if out of likelihood max limit
-				if bcs.MaxDefaultLikelihood != 0.0 &&
-					l.DefaultLikelihood > bcs.MaxDefaultLikelihood {
-					continue
-				}
-			}
-
-			// calc yield
-			y := (1.0-l.DefaultLikelihood)*l.InterestRate*float64(l.Amount) - l.DefaultLikelihood*float64(l.Amount) - f.InterestRate*float64(l.Amount)
-			// validate by yield
-			if y < 0.0 {
-				continue
-			}
-			assign := Assignment{FacilityID: f.ID, LoanID: l.ID}
-			assigns = append(assigns, assign)
-			loaned = true
-			facilCap[f.ID] = facilCap[f.ID] - float64(l.Amount)
-			facilYield[f.ID] = facilYield[f.ID] + y
-			break
+	// validate by covens of facility or bank
+	fcs, ok := in.FacilsCovensMap[f.ID]
+	if ok {
+		// if banned state
+		if _, ok := fcs.BannedState[loan.State]; ok {
+			return false
+		}
+		// if out of likelihood max limit
+		if fcs.MaxDefaultLikelihood != 0.0 &&
+			loan.DefaultLikelihood > fcs.MaxDefaultLikelihood {
+			return false
 		}
 	}
+	bcs, ok := in.BanksCovensMap[f.BankID]
+	if ok {
+		// if banned state
+		if _, ok := bcs.BannedState[loan.State]; ok {
+			return false
+		}
+		// if out of likelihood max limit
+		if bcs.MaxDefaultLikelihood != 0.0 &&
+			loan.DefaultLikelihood > bcs.MaxDefaultLikelihood {
+			return false
+		}
+	}
+	return true
+}
 
-	// write result
-	err = objsToCSV(l.conf.OutPath+"/assignments.csv", &assigns)
+func (l *Loaner) calcYield(loan Loan, f Facility) float64 {
+	y := (1.0 - loan.DefaultLikelihood) * loan.InterestRate * float64(loan.Amount)
+	y = y - loan.DefaultLikelihood*float64(loan.Amount) - f.InterestRate*float64(loan.Amount)
+	return y
+}
+
+func (l *Loaner) writeResult(assigns Assignments, facilYield FacilYieldMap) error {
+
+	err := objsToCSV(l.conf.OutPath+"/assignments.csv", &assigns)
 	if err != nil {
 		log.Print("assigs to csv parse err: ", err)
 		return err

@@ -9,8 +9,8 @@ func main() {
 
 	// config and init loaner
 	c := loaner.Config{
-		// InPath: "./task_desc/small",
-		InPath:  "./task_desc/large",
+		InPath: "./task_desc/small",
+		// InPath:  "./task_desc/large",
 		OutPath: "./out",
 	}
 	l := loaner.New(c)

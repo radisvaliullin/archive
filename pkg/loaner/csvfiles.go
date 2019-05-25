@@ -13,6 +13,7 @@ func csvToObjs(fpath string, obj interface{}) error {
 	// open file
 	f, err := os.Open(fpath)
 	if err != nil {
+		log.Print("csv to objs, open file err: ", err)
 		return err
 	}
 	defer f.Close()
@@ -20,6 +21,7 @@ func csvToObjs(fpath string, obj interface{}) error {
 	// parse csv
 	err = gocsv.UnmarshalFile(f, obj)
 	if err != nil {
+		log.Print("csv to objs, unmarshal err: ", err)
 		return err
 	}
 
@@ -31,6 +33,7 @@ func objsToCSV(fpath string, obj interface{}) error {
 	// parse obj to CSV
 	out, err := gocsv.MarshalBytes(obj)
 	if err != nil {
+		log.Print("objs to csv, marshal err: ", err)
 		return err
 	}
 
@@ -40,24 +43,24 @@ func objsToCSV(fpath string, obj interface{}) error {
 		log.Print("is not exist, mkdir ", filepath.Dir(fpath))
 		err := os.Mkdir(filepath.Dir(fpath), 0755)
 		if err != nil {
-			log.Print("mkdir err: ", err)
+			log.Print("objs to csv, mkdir err: ", err)
 			return err
 		}
 	} else if err != nil {
-		log.Print("dir stat err: ", err)
+		log.Print("objs to csv, dir stat err: ", err)
 		return err
 	}
 	// open file
 	f, err := os.Create(fpath)
 	if err != nil {
-		log.Print("csv file create err: ", err)
+		log.Print("objs to csv, create err: ", err)
 		return err
 	}
 	defer f.Close()
 
 	_, err = f.Write(out)
 	if err != nil {
-		log.Print("csv file write err: ", err)
+		log.Print("objs to csv, write err: ", err)
 		return err
 	}
 

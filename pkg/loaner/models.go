@@ -1,8 +1,17 @@
 package loaner
 
 //
-// Simple input cvs structs
+// input cvs structs
 //
+
+// Inputs contains input data
+type Inputs struct {
+	Facils          Facilities
+	FacilCap        FacilCapMap
+	FacilsCovensMap FacilsCovensMap
+	BanksCovensMap  BanksCovensMap
+	Loans           Loans
+}
 
 // Banks list of banks
 type Banks []Bank
@@ -86,6 +95,10 @@ type Loan struct {
 	DefaultLikelihood float64 `csv:"default_likelihood"`
 	State             string  `csv:"state"`
 }
+
+//
+// Out
+//
 
 // Assignments list of assingments
 type Assignments []Assignment
